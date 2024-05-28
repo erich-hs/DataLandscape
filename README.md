@@ -4,7 +4,7 @@
 ### `M`achine Learning, `A`nalytics, and `D`ata `Dashboard`
 
 
-Inspired by [Matt Turck](https://www.linkedin.com/in/turck/)'s [MAD Landscape]((https://mattturck.com/mad2023/)) initiative to help data practitioners navigate and make sense of the rapidly evolving world of data products and frameworks, the **MAD Dashboard** aims at giving a birds-eye-view of the scene with insights about popularity and adoption of these tools.
+Inspired by [Matt Turck](https://www.linkedin.com/in/turck/)'s [MAD Landscape](https://mattturck.com/mad2023/) initiative to help data practitioners navigate and make sense of the rapidly evolving world of data products and frameworks, the **MAD Dashboard** aims at giving a birds-eye-view of the scene with insights about popularity and adoption of these tools.
 
 With the project, my goal is to help answering questions such as:
 > - What is the most popular Open Source OLAP Database?
@@ -17,7 +17,7 @@ And hopefully much more.
 # Conceptual Data Modeling
 The core reference dataset for this dashboard is sourced from the [2023 MAD Landscape]((https://mattturck.com/mad2023/)) by Matt Turck. Matt's analysis for 2023, however, is comprised of more than 1,400 logos and for a couple of reasons that list need to be trimmed down to a more manageable number of products/frameworks to be tracked.
 
-A curated subset will, therefore, be manually selected from his [interactive dashboard](https://mad.firstmark.com/). This initial selection will be partially arbitrary, but the idea is to implement the solution to be scalable and expandable, where new products can be onboarded in the future.
+A curated subset will, therefore, be manually selected from his [interactive dashboard](https://mad.firstmark.com/). This initial selection will be partially arbitrary, but the idea is to implement a scalable and extensible solution, where new products can be onboarded in the future.
 
 To compose the metrics and datasets for analytics, data will be collected from data sources from three major categories:
 
