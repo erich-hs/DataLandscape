@@ -6,10 +6,10 @@ import boto3
 from botocore.exceptions import ClientError
 from datetime import datetime, timedelta
 from typing import List, Union
-from awsglue.utils import getResolvedOptions
-from awsglue.context import GlueContext
-from awsglue.job import Job
-from pyspark.sql import SparkSession
+from awsglue.utils import getResolvedOptions # type: ignore
+from awsglue.context import GlueContext # type: ignore
+from awsglue.job import Job # type: ignore
+from pyspark.sql import SparkSession # type: ignore
 from google.cloud import bigquery
 from google.oauth2 import service_account
 
