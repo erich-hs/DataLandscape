@@ -9,9 +9,9 @@ job_name = 'backfill_pypi_file_downloads'
 script_path = 'include/scripts/spark/spark_job_ingest_pypi.py'
 job_description = 'Ingest PyPI file downloads from Google BigQuery public dataset.'
 run_arguments = {
-    "--ds": "2024-06-20",
-    "--date_end": "2024-06-21",
-    "--pypi_project": "duckdb",
+    "--ds": "2024-06-19",
+    "--date_end": "2024-06-20",
+    "--pypi_project": "duckdb,great-expectations,pyarrow",
     "--target_table": "pypi_file_downloads_backfill"
 }
 
@@ -33,6 +33,12 @@ additional_python_modules=[
     'googleapis-common-protos==1.63.1'
 ]
 
+spark_configs = {
+    "spark.sql.shuffle.partitions": "50",
+    "spark.sql.sources.partitionOverwriteMode": "dynamic",
+    "spark.driver.memory": "16g",
+}
+
 local_log_dir = '.dev/logs'
 
 if __name__ == "__main__":
@@ -46,5 +52,6 @@ if __name__ == "__main__":
         aws_secret_access_key=aws_secret_access_key,
         aws_region=aws_region,
         additional_python_modules=additional_python_modules,
-        local_log_dir=local_log_dir
+        local_log_dir=local_log_dir,
+        spark_configs=spark_configs
    )
