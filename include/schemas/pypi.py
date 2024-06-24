@@ -1,8 +1,14 @@
+from typing import Union, List
+
 def pypi_file_downloads_query(
-    project: str,
+    project: Union[str, List[str]],
     start_date: str,
     end_date: str
 ) -> str:
+    if isinstance(project, str):
+        project_where_clause = f"project = '{project}'"
+    elif isinstance(project, list):
+        project_where_clause = f"project IN ({', '.join([f'"{p}"' for p in project])})"
     return f"""SELECT
     timestamp,
     country_code,
@@ -23,13 +29,13 @@ def pypi_file_downloads_query(
     details.setuptools_version AS setuptools_version
 FROM `bigquery-public-data.pypi.file_downloads`
 WHERE
-    project = "{project}"
+    {project_where_clause}
     AND TIMESTAMP_TRUNC(timestamp, DAY) >= TIMESTAMP("{start_date}")
     AND TIMESTAMP_TRUNC(timestamp, DAY) < TIMESTAMP("{end_date}")
 """
 
 pypi_file_downloads_schema = """
-    timestamp TIMESTAMP WITH TIME ZONE,
+    timestamp TIMESTAMP,
     country_code STRING,
     project STRING,
     file_version STRING,
