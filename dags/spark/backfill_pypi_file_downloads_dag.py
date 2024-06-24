@@ -7,7 +7,7 @@ load_dotenv()
 # Job parameters
 job_name = 'backfill_pypi_file_downloads'
 script_path = 'include/scripts/spark/spark_job_ingest_pypi.py'
-job_description = 'Ingest PyPI file downloads from Google BigQuery public dataset.'
+job_description = 'Ingest aggregate PyPI file download counts from Google BigQuery public dataset.'
 run_arguments = {
     "--ds": "2024-06-19",
     "--date_end": "2024-06-20",
