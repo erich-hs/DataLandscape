@@ -1,10 +1,9 @@
 import os
 import json
 import time
-from typing import List, Optional
+from typing import Optional, Dict
 import boto3
 from botocore.exceptions import ClientError
-from dotenv import load_dotenv
 
 from .aws_s3 import upload_to_s3
 from .log_config import setup_s3_logging
@@ -61,7 +60,8 @@ def submit_glue_job(
     aws_secret_access_key: str,
     aws_region: str,
     additional_python_modules: list,
-    local_log_dir: Optional[str] = None
+    local_log_dir: Optional[str] = None,
+    spark_configs: Optional[Dict[str, str]] = None
 ):
     s3_client = boto3.client("s3")
 
@@ -98,6 +98,10 @@ def submit_glue_job(
         'spark.sql.catalog.glue_catalog.catalog-impl=org.apache.iceberg.aws.glue.GlueCatalog',
         'spark.sql.catalog.glue_catalog.io-impl=org.apache.iceberg.aws.s3.S3FileIO'
     ]
+
+    if spark_configs:
+        for key, value in spark_configs.items():
+            spark_configurations.append(f"{key}={value}")
 
     spark_string = ' --conf '.join(spark_configurations)
 
