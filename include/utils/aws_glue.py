@@ -162,7 +162,6 @@ def submit_glue_job(
     paginator = logs_client.get_paginator("filter_log_events")
     while True:
         status = check_job_status(glue_client, job_name, job_run_id)
-        logger.info(f"Job status: {status['JobRunState']}")
 
         if status['JobRunState'] in ['SUCCEEDED']:
             end_time = time.time()
