@@ -13,34 +13,21 @@ from pyspark.sql import SparkSession # type: ignore
 from google.cloud import bigquery
 from google.oauth2 import service_account
 
-spark = SparkSession\
-        .builder\
-        .config("spark.sql.shuffle.partitions", "50")\
-        .config("spark.sql.sources.partitionOverwriteMode", "dynamic")\
-        .getOrCreate()
 
+# %% Build local arguments
 args = getResolvedOptions(
     sys.argv,
     [
         "JOB_NAME",
         "ds",
-        "date_end",
         "pypi_project",
         "target_table"
     ]
 )
 
-# Build local arguments
-start_date = args["ds"]
-
-if args["date_end"].lower() == "default":
-    # If no end date is provided, default to the next day
-    end_date = datetime.strptime(start_date, "%Y-%m-%d") + timedelta(days=1)
-    end_date = end_date.strftime("%Y-%m-%d")
-else:
-    # Otherwise, use the provided end date
-    end_date = args["date_end"]
-
+min_date = args["ds"]
+max_date = datetime.strptime(min_date, "%Y-%m-%d") + timedelta(days=1)
+max_date = max_date.strftime("%Y-%m-%d")
 pypi_project = args["pypi_project"]
 
 if len(pypi_project.split(",")) > 1:
@@ -49,6 +36,17 @@ if len(pypi_project.split(",")) > 1:
 
 target_table = args["target_table"]
 
+
+# %% Initialize Spark session
+spark = SparkSession \
+        .builder \
+        .config("spark.sql.shuffle.partitions", "50") \
+        .getOrCreate()
+glueContext = GlueContext(spark.sparkContext)
+spark = glueContext.spark_session
+
+
+# %% Define auxiliary functions
 def get_secret(secret_name, region_name):
     # Create a Secrets Manager client
     session = boto3.session.Session()
@@ -69,8 +67,8 @@ def get_secret(secret_name, region_name):
 
 def pypi_file_downloads_query(
     pypi_project: Union[str, List[str]],
-    start_date: str,
-    end_date: str
+    min_date: str,
+    max_date: str
 ) -> str:
     if isinstance(pypi_project, str):
         project_where_clause = f"project = '{pypi_project}'"
@@ -89,8 +87,8 @@ def pypi_file_downloads_query(
 FROM `bigquery-public-data.pypi.file_downloads`
 WHERE
     {project_where_clause}
-    AND TIMESTAMP_TRUNC(timestamp, DAY) >= TIMESTAMP("{start_date}")
-    AND TIMESTAMP_TRUNC(timestamp, DAY) < TIMESTAMP("{end_date}")
+    AND TIMESTAMP_TRUNC(timestamp, DAY) >= TIMESTAMP("{min_date}")
+    AND TIMESTAMP_TRUNC(timestamp, DAY) < TIMESTAMP("{max_date}")
 GROUP BY
     CAST(date_trunc(timestamp, DAY) AS DATE),
     project,
@@ -100,28 +98,18 @@ GROUP BY
     details.system.name
 """
 
-glueContext = GlueContext(spark.sparkContext)
-spark = glueContext.spark_session
 
-spark.sql(f"""
-    CREATE TABLE IF NOT EXISTS glue_catalog.mad_dashboard_dl.{target_table} (
-        download_date DATE,
-        project STRING,
-        project_version STRING,
-        python STRING,
-        system_name STRING,
-        country_code STRING,
-        download_count INT
-    )
-    USING iceberg
-    PARTITIONED BY(months(download_date))
-""")
-
+# %% Fetch from BigQuery
 bigquery_query = pypi_file_downloads_query(
     pypi_project=pypi_project,
-    start_date=start_date,
-    end_date=end_date
+    min_date=min_date,
+    max_date=max_date
 )
+
+# Sadly a BigQuery connection in Glue did not work here, so the BigQuery Python SDK is used instead.
+# The next lines of code will fetch the PyPI file downloads from BigQuery as a PyArrow Table and INSERT OVERWRITE
+# into the target iceberg table. All of it, until the write is called, is being handled at the driver node.
+# Spark is still being leveraged here to ensure that the downstream footprint is consistent as an Iceberg table.
 
 # Retrieve BigQuery credentials
 session = boto3.session.Session()
@@ -138,20 +126,22 @@ bigquery_credentials = service_account.Credentials.from_service_account_info(big
 # Instantiate BigQuery client
 bigquery_client = bigquery.Client(project="mad-dashboard-app", credentials=bigquery_credentials)
 
-# Fetch PyPI file downloads from BigQuery
+# Fetch PyPI file downloads aggregates from BigQuery
 print(f"Fetching PyPI file downloads from BigQuery with query:\n{bigquery_query}")
 start_time = time.time()
 pypi_project_table = bigquery_client.query(bigquery_query, timeout=300).to_arrow()
 end_time = time.time()
 print(f"{len(pypi_project_table)} records for PyPI file downloads fetched in {end_time - start_time} seconds.")
 
+
+# %% Write to Iceberg table
 # Instantiate a PySpark DataFrame from the PyArrow Table
 pypi_project_df = spark.createDataFrame(pypi_project_table.to_pandas())
 
 # Insert Overwrite DataFrame to the target table
-pypi_project_df\
-    .write\
-    .mode('overwrite')\
-    .insertInto(f'glue_catalog.mad_dashboard_dl.{target_table}')
+pypi_project_df \
+    .writeTo(f'glue_catalog.mad_dashboard_dl.{target_table}') \
+    .using('iceberg') \
+    .overwritePartitions()
 
 job = Job(glueContext)

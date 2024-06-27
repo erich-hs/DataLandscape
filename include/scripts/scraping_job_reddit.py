@@ -159,7 +159,7 @@ def fetch_reddit():
         s3_bucket=s3_bucket,
         s3_log_dir='logs',
         s3_client=s3_client,
-        local_log_dir=f'.dev/logs'
+        local_logs_dir=f'.dev/logs'
     )
 
     for sub in SUBREDDITS:
