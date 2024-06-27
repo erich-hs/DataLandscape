@@ -8,6 +8,14 @@ mad-dashboard-app-*.json
 # Logs
 .DS_Store
 
+# Airflow
+airflow_settings.yaml
+astro
+airflow-webserver.pid
+webserver_config.py
+airflow.cfg
+airflow.db
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]

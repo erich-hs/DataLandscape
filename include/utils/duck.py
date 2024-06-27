@@ -1,9 +1,7 @@
 import os
 import logging
 import duckdb
-import pandas as pd
 import pyarrow as pa
-import polars as pl
 
 class DuckDBManager:
     def __init__(

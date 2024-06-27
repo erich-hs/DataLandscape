@@ -41,7 +41,7 @@ def setup_s3_logging(
         s3_bucket: str,
         s3_log_dir: str,
         s3_client: boto3.client,
-        local_log_dir: Optional[str] = None,
+        local_logs_dir: Optional[str] = None,
 ):
     logger = logging.getLogger(logger_name)
     logger.setLevel(logging.INFO)
@@ -65,10 +65,10 @@ def setup_s3_logging(
     logger.addHandler(s3_handler)
 
     # Local log file handler
-    if local_log_dir:
-        if not os.path.exists(f"{local_log_dir}/{logger_name}/"):
-            Path(f"{local_log_dir}/{logger_name}/").mkdir(parents=True, exist_ok=True)
-        fh = RotatingFileHandler(f"{local_log_dir}/{logger_name}/{log_file_name}", maxBytes=5*1024*1024, backupCount=5)
+    if local_logs_dir:
+        if not os.path.exists(f"{local_logs_dir}/{logger_name}/"):
+            Path(f"{local_logs_dir}/{logger_name}/").mkdir(parents=True, exist_ok=True)
+        fh = RotatingFileHandler(f"{local_logs_dir}/{logger_name}/{log_file_name}", maxBytes=5*1024*1024, backupCount=5)
         fh.setLevel(logging.INFO)
         fh.setFormatter(formatter)
         logger.addHandler(fh)
