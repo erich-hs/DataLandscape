@@ -1,7 +1,7 @@
 import os
 import json
 import time
-from typing import Optional, Dict
+from typing import List, Optional, Dict
 import boto3
 from botocore.exceptions import ClientError
 
@@ -59,10 +59,11 @@ def submit_glue_job(
     aws_access_key_id: str,
     aws_secret_access_key: str,
     aws_region: str,
-    additional_python_modules: list,
-    local_log_dir: Optional[str] = None,
+    additional_python_modules: Optional[List[str]] = None,
+    local_logs_dir: Optional[str] = None,
     spark_configs: Optional[Dict[str, str]] = None
 ):
+    print(f"Inside submit_glue_job: {aws_region=}")
     s3_client = boto3.client("s3")
 
     logs_client = boto3.client("logs",
@@ -80,7 +81,7 @@ def submit_glue_job(
         s3_bucket=s3_bucket,
         s3_log_dir='logs',
         s3_client=s3_client,
-        local_log_dir=local_log_dir
+        local_logs_dir=local_logs_dir
     )
 
     s3_script_path = upload_to_s3(
@@ -109,7 +110,7 @@ def submit_glue_job(
         'Description': job_description,
         'Role': 'glue-full-access',
         'ExecutionProperty': {
-            "MaxConcurrentRuns": 3
+            "MaxConcurrentRuns": 6
         },
         'Command': {
             "Name": "glueetl",
