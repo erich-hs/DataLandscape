@@ -3,6 +3,7 @@ import base64
 import json
 import sys
 import boto3
+import logging
 from botocore.exceptions import ClientError
 from datetime import datetime, timedelta
 from typing import List, Union
@@ -59,7 +60,7 @@ def get_secret(secret_name, region_name):
             SecretId=secret_name
         )
     except ClientError as e:
-        print(f"Failed to fetch secret {secret_name} with exception {e}")
+        logging.error(f"Failed to fetch secret {secret_name} with exception {e}")
         raise e
 
     secret = get_secret_value_response['SecretString']
@@ -127,11 +128,15 @@ bigquery_credentials = service_account.Credentials.from_service_account_info(big
 bigquery_client = bigquery.Client(project="mad-dashboard-app", credentials=bigquery_credentials)
 
 # Fetch PyPI file downloads aggregates from BigQuery
-print(f"Fetching PyPI file downloads from BigQuery with query:\n{bigquery_query}")
+logging.info(f"Fetching PyPI file downloads from BigQuery with query:\n{bigquery_query}")
 start_time = time.time()
-pypi_project_table = bigquery_client.query(bigquery_query, timeout=300).to_arrow()
+try:
+    pypi_project_table = bigquery_client.query(bigquery_query, timeout=300).to_arrow()
+except Exception as e:
+    logging.error(f"Failed to fetch PyPI file downloads from BigQuery: {e}")
+    raise e
 end_time = time.time()
-print(f"{len(pypi_project_table)} records for PyPI file downloads fetched in {end_time - start_time} seconds.")
+logging.info(f"{len(pypi_project_table)} records for PyPI file downloads fetched in {end_time - start_time} seconds.")
 
 
 # %% Write to Iceberg table
