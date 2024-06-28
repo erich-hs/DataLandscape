@@ -172,7 +172,7 @@ def fetch_reddit():
         invalid_submissions_target_file = f"data/reddit/api/{execution_date_utc}/invalid/{sub}_submissions.json"
 
         if submissions:
-            submissions_json = json.dumps(submissions)
+            submissions_json = "\n".join([json.dumps(record) for record in submissions])
             put_to_s3(
                 data=submissions_json,
                 s3_bucket=s3_bucket,
@@ -181,7 +181,7 @@ def fetch_reddit():
                 logger=logger
             )
         if invalid_submissions:
-            invalid_submissions_json = json.dumps(invalid_submissions)
+            invalid_submissions_json = "\n".join([json.dumps(record) for record in invalid_submissions])
             put_to_s3(
                 data=invalid_submissions_json,
                 s3_bucket=s3_bucket,
@@ -203,7 +203,7 @@ def fetch_reddit():
         invalid_comments_target_file = f"data/reddit/api/{execution_date_utc}/invalid/{sub}_comments.json"
 
         if all_comments:
-            all_comments_json = json.dumps(all_comments)
+            all_comments_json = "\n".join([json.dumps(record) for record in all_comments])
             put_to_s3(
                 data=all_comments_json,
                 s3_bucket=s3_bucket,
@@ -212,7 +212,7 @@ def fetch_reddit():
                 logger=logger
             )
         if all_invalid_comments:
-            all_invalid_comments_json = json.dumps(all_invalid_comments)
+            all_invalid_comments_json = "\n".join([json.dumps(record) for record in all_invalid_comments])
             put_to_s3(
                 data=all_invalid_comments_json,
                 s3_bucket=s3_bucket,
