@@ -1,4 +1,3 @@
-import os
 import time
 import json
 import boto3
@@ -7,20 +6,10 @@ import praw
 from typing import List, Tuple, Union
 from datetime import datetime, UTC
 from pydantic import ValidationError
-from dotenv import load_dotenv
 
 from ..schemas.reddit import RedditSubmission, RedditComment
 from ..utils.aws_s3 import put_to_s3
 from ..utils.log_config import setup_s3_logging
-
-SUBREDDITS = [
-    "dataengineering",
-    "MachineLearning",
-    "datascience",
-    "analytics",
-    "LocalLLaMA",
-    "learnprogramming",
-]
 
 def fetch_subreddit_newest_submissions(
     reddit: praw.reddit.Reddit,
@@ -137,16 +126,23 @@ def fetch_submission_comments(
 
     return comments, invalid_comments
 
-def fetch_reddit():
+def fetch_reddit(
+    subreddits: List[str],
+    s3_bucket: str,
+    aws_access_key_id: str,
+    aws_secret_access_key: str,
+    reddit_client_id: str,
+    reddit_client_secret: str,
+    local_logs_dir: str
+):
     execution_ts = datetime.now(UTC).timestamp()
     execution_date_utc = datetime.fromtimestamp(execution_ts, UTC).strftime('%Y-%m-%d')
 
-    load_dotenv()
-    reddit_client_id = os.getenv("REDDIT_CLIENT_ID")
-    reddit_client_secret = os.getenv("REDDIT_CLIENT_SECRET")
-
-    s3_bucket = os.getenv("AWS_S3_BUCKET")
-    s3_client = boto3.client('s3')
+    s3_client = boto3.client(
+        's3',
+        aws_access_key_id=aws_access_key_id,
+        aws_secret_access_key=aws_secret_access_key
+    )
 
     reddit = praw.Reddit(
         client_id=reddit_client_id,
@@ -159,10 +155,10 @@ def fetch_reddit():
         s3_bucket=s3_bucket,
         s3_log_dir='logs',
         s3_client=s3_client,
-        local_logs_dir=f'.dev/logs'
+        local_logs_dir=local_logs_dir
     )
 
-    for sub in SUBREDDITS:
+    for sub in subreddits:
         sub = sub.lower()
         
         # Submissions        
@@ -223,6 +219,3 @@ def fetch_reddit():
         
         # Sleep for 1 minute before fetching next subreddit
         time.sleep(60)
-
-if __name__ == "__main__":
-    fetch_reddit()
