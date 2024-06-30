@@ -54,6 +54,13 @@ This pipeline will also archive processed reddit raw records.
 
 This pipeline is idempotent and can be used for backfills from archived records.
 
+### `process_reddit_dag`
+Reddit Submissions and Comments are processed to extract mentions for the [tracked projects](#tracked-projects). After mentions are extracted, they are summarized (with OpenAI gpt-3.5-turbo) and returned as a json record (with format integrity ensured by the guidance framework).
+
+Data is stored at the production table `reddit_projects_mentions`.
+
+This pipeline is idempotent (with a caveat on the dependency on the OpenAI ChatGPT API) and can be backfilled.
+
 ## PyPI
 The PyPI pipeline is an **Write, Audit, Publish** pattern that handles daily updates to the `pypi_file_downloads` production table.
 
@@ -72,13 +79,6 @@ This main dag implements an **Write, Audit, Publish** pattern performing the tas
 The ingest task fetches daily aggregates of pypi projects downloads for the [tracked projects](#tracked-projects). It currently processes daily an estimate of 500 GB of data from the source BigQuery dataset, and loads them into iceberg tables.
 
 The current record count of daily aggregates with backfilled data from 2024-01-01 to 2024-06-29 is of 50.5 M records.
-
-### `process_reddit_dag`
-Reddit Submissions and Comments are processed to extract mentions for the [tracked projects](#tracked-projects). After mentions are extracted, they are summarized (with OpenAI gpt-3.5-turbo) and returned as a json record (with format integrity ensured by the guidance framework).
-
-Data is stored at the production table `reddit_projects_mentions`.
-
-This pipeline is idempotent (with a caveat on the dependency on the OpenAI ChatGPT API) and can be backfilled.
 
 # Conceptual Data Modeling
 
