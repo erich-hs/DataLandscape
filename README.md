@@ -76,7 +76,7 @@ This main dag implements an **Write, Audit, Publish** pattern performing the tas
 - exchange_step
 - cleanup_step
 
-The ingest task fetches daily aggregates of pypi projects downloads for the [tracked projects](#tracked-projects). It currently processes daily an estimate of 500 GB of data from the source BigQuery dataset, and loads them into iceberg tables.
+The ingest task fetches daily aggregates of pypi projects downloads for the [tracked projects](#tracked-projects). It currently processes daily an estimate of 5 GB of data from the source BigQuery dataset, and loads them into iceberg tables.
 
 The current record count of daily aggregates with backfilled data from 2024-01-01 to 2024-06-29 is of 50.5 M records.
 
