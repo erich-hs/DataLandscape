@@ -9,7 +9,7 @@ from awsglue.utils import getResolvedOptions # type: ignore
 from awsglue.context import GlueContext # type: ignore
 from awsglue.job import Job # type: ignore
 from pyspark.sql import SparkSession # type: ignore
-from pyspark.sql.functions import udf, lit, array # type: ignore
+from pyspark.sql.functions import udf, lit, array, col # type: ignore
 from pyspark.sql.types import (  # type: ignore
     StringType,
     IntegerType,
@@ -135,14 +135,14 @@ submissions_df = spark \
     .where(f"created_date = '{current_date}'") \
     .select(
         lit('submission').alias('type'),
-        'created_utc',
-        'created_date',
-        'title',
-        'id',
-        'subreddit_name_prefixed as subreddit',
-        'selftext as text',
-        'permalink',
-        'score'
+        col('created_utc'),
+        col('created_date'),
+        col('title'),
+        col('id'),
+        col('subreddit_name_prefixed').alias('subreddit'),
+        col('selftext').alias('text'),
+        col('permalink'),
+        col('score')
     )
 
 comments_df = spark \
@@ -151,14 +151,14 @@ comments_df = spark \
     .where(f"created_date = '{current_date}'") \
     .select(
         lit('comment').alias('type'),
-        'created_utc',
-        'created_date',
+        col('created_utc'),
+        col('created_date'),
         lit('').alias('title'),
-        'id',
-        'subreddit_name_prefixed as subreddit',
-        'body as text',
-        'permalink',
-        'score'
+        col('id'),
+        col('subreddit_name_prefixed').alias('subreddit'),
+        col('body').alias('text'),
+        col('permalink'),
+        col('score')
     )
 
 # Union all
