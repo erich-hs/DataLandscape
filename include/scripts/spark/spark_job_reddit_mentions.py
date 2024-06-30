@@ -133,34 +133,32 @@ submissions_df = spark \
     .read \
     .table(f'glue_catalog.mad_dashboard_dl.{submissions_table}') \
     .where(f"created_date = '{current_date}'") \
-    .select("""
-        'submission' as type,
-        created_utc,
-        created_date,
-        title,
-        id,
-        subreddit_name_prefixed as subreddit,
-        selftext as text,
-        permalink,
-        score
-    """
+    .select(
+        lit('submission').alias('type'),
+        'created_utc',
+        'created_date',
+        'title',
+        'id',
+        'subreddit_name_prefixed as subreddit',
+        'selftext as text',
+        'permalink',
+        'score'
     )
 
 comments_df = spark \
     .read \
     .table(f'glue_catalog.mad_dashboard_dl.{comments_table}') \
     .where(f"created_date = '{current_date}'") \
-    .select("""
-        'comment' as type,
-        created_utc,
-        created_date,
-        '' as title,
-        id,
-        subreddit_name_prefixed as subreddit,
-        body as text,
-        permalink,
-        score
-    """
+    .select(
+        lit('comment').alias('type'),
+        'created_utc',
+        'created_date',
+        lit('').alias('title'),
+        'id',
+        'subreddit_name_prefixed as subreddit',
+        'body as text',
+        'permalink',
+        'score'
     )
 
 # Union all
