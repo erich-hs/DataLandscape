@@ -132,6 +132,7 @@ summarize_mentions_udf = udf(summarize_mentions, MapType(StringType(), IntegerTy
 submissions_df = spark \
     .read \
     .table(f'glue_catalog.mad_dashboard_dl.{submissions_table}') \
+    .where(f"created_date = '{current_date}'") \
     .select("""
         'submission' as type,
         created_utc,
@@ -148,6 +149,7 @@ submissions_df = spark \
 comments_df = spark \
     .read \
     .table(f'glue_catalog.mad_dashboard_dl.{comments_table}') \
+    .where(f"created_date = '{current_date}'") \
     .select("""
         'comment' as type,
         created_utc,

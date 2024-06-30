@@ -21,7 +21,7 @@ AWS_SECRET_ACCESS_KEY = Variable.get('AWS_SECRET_ACCESS_KEY')
 AWS_DEFAULT_REGION = Variable.get('AWS_DEFAULT_REGION')
 
 def reddit_projects_mentions_create_table_query(target_table):
-    return f"""CREATE TABLE IF NOT EXISTS glue_catalog.mad_dashboard_dl.{target_table} (
+    return f"""CREATE TABLE IF NOT EXISTS {target_table} (
         type STRING,
         created_utc DOUBLE,
         created_date DATE,
