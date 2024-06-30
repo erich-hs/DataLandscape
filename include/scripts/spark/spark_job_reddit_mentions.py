@@ -131,23 +131,44 @@ summarize_mentions_udf = udf(summarize_mentions, MapType(StringType(), IntegerTy
 # Read from Iceberg tables
 submissions_df = spark \
     .read \
-    .table(f'glue_catalog.mad_dashboard_dl.{submissions_table}')
+    .table(f'glue_catalog.mad_dashboard_dl.{submissions_table}') \
+    .select("""
+        'submission' as type,
+        created_utc,
+        created_date,
+        title,
+        id,
+        subreddit_name_prefixed as subreddit,
+        selftext as text,
+        permalink,
+        score
+    """
+    )
+
 comments_df = spark \
-    .read.table(f'glue_catalog.mad_dashboard_dl.{comments_table}')
+    .read \
+    .table(f'glue_catalog.mad_dashboard_dl.{comments_table}') \
+    .select("""
+        'comment' as type,
+        created_utc,
+        created_date,
+        '' as title,
+        id,
+        subreddit_name_prefixed as subreddit,
+        body as text,
+        permalink,
+        score
+    """
+    )
+
+# Union all
+reddit_projects_mentions_df = submissions_df.union(comments_df)
 
 # Extract projects mentions from submissions and comments
-submissions_df = submissions_df.withColumn(
+reddit_projects_mentions_df = reddit_projects_mentions_df.withColumn(
     "projects_mentions",
     find_mentions_udf(
-        submissions_df.selftext, 
-        array(*[lit(term) for term in tracked_projects])
-    )
-)
-
-comments_df = comments_df.withColumn(
-    "projects_mentions",
-    find_mentions_udf(
-        comments_df.body, 
+        reddit_projects_mentions_df.text, 
         array(*[lit(term) for term in tracked_projects])
     )
 )
@@ -162,8 +183,18 @@ client = session.client(
 openai_api_key_secret = get_secret(secret_name = "mad_dashboard/OpenAIAPIKey", region_name = "us-west-2")
 openai_api_key = json.loads(openai_api_key_secret)['OPENAI_API_KEY']
 
+reddit_projects_mentions_df = reddit_projects_mentions_df.withColumn(
+    "projects_mentions_summary",
+    summarize_mentions_udf(
+        reddit_projects_mentions_df.projects_mentions,
+        reddit_projects_mentions_df.text,
+        lit('gpt-3.5-turbo'),
+        lit(openai_api_key)
+    )
+)
+
 # Write to target table
-submissions_df \
+reddit_projects_mentions_df \
     .writeTo(f'glue_catalog.mad_dashboard_dl.{target_table}') \
     .using('iceberg') \
     .overwritePartitions()
