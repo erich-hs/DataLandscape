@@ -7,7 +7,7 @@ from datetime import datetime, timedelta
 from include.utils.aws_glue import submit_glue_job
 from include.reference import PYPI_PROJECTS
 
-START_DATE = datetime(2024, 6, 22)
+START_DATE = datetime(2024, 6, 29)
 
 STAGING_TABLE = 'stg_pypi_file_downloads'
 PRODUCTION_TABLE = 'pypi_file_downloads'
