@@ -9,7 +9,7 @@ from awsglue.utils import getResolvedOptions # type: ignore
 from awsglue.context import GlueContext # type: ignore
 from awsglue.job import Job # type: ignore
 from pyspark.sql import SparkSession # type: ignore
-from pyspark.sql.functions import udf, lit, array, col # type: ignore
+from pyspark.sql.functions import udf, lit, array, col, when # type: ignore
 from pyspark.sql.types import (  # type: ignore
     StringType,
     IntegerType,
@@ -124,7 +124,7 @@ Social media comment:
 
 # Register UDFs
 find_mentions_udf = udf(find_mentions, MapType(StringType(), IntegerType()))
-summarize_mentions_udf = udf(summarize_mentions, MapType(StringType(), IntegerType()))
+summarize_mentions_udf = udf(summarize_mentions, MapType(StringType(), StringType()))
 
 
 # %% Spark Job
@@ -133,6 +133,7 @@ submissions_df = spark \
     .read \
     .table(f'glue_catalog.mad_dashboard_dl.{submissions_table}') \
     .where(f"created_date = '{current_date}'") \
+    .limit(100) \
     .select(
         lit('submission').alias('type'),
         col('created_utc'),
@@ -149,6 +150,7 @@ comments_df = spark \
     .read \
     .table(f'glue_catalog.mad_dashboard_dl.{comments_table}') \
     .where(f"created_date = '{current_date}'") \
+    .limit(100) \
     .select(
         lit('comment').alias('type'),
         col('created_utc'),
@@ -185,11 +187,14 @@ openai_api_key = json.loads(openai_api_key_secret)['OPENAI_API_KEY']
 
 reddit_projects_mentions_df = reddit_projects_mentions_df.withColumn(
     "projects_mentions_summary",
-    summarize_mentions_udf(
-        reddit_projects_mentions_df.projects_mentions,
-        reddit_projects_mentions_df.text,
-        lit('gpt-3.5-turbo'),
-        lit(openai_api_key)
+    when(
+        reddit_projects_mentions_df.projects_mentions.isNotNull(),
+        summarize_mentions_udf(
+            reddit_projects_mentions_df.projects_mentions,
+            reddit_projects_mentions_df.text,
+            lit('gpt-3.5-turbo'),
+            lit(openai_api_key)
+        )
     )
 )
 

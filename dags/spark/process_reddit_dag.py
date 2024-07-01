@@ -54,7 +54,7 @@ def reddit_projects_mentions_create_table_query(target_table):
     },
     max_active_runs=3,
     schedule_interval="@daily",
-    catchup=True,
+    catchup=False,
     tags=["glue", "reddit", "process"]
 )
 def process_reddit_dag():
@@ -80,7 +80,7 @@ def process_reddit_dag():
 
     process_reddit_mentions = PythonOperator(
             task_id="process_reddit_mentions",
-            depends_on_past=True,
+            depends_on_past=False,
             python_callable=submit_glue_job,
             op_kwargs={
                 "job_name": 'process_reddit_mentions',
