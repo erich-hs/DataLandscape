@@ -52,15 +52,105 @@ PYPI_PROJECTS = [
 ]
 
 PROJECTS_SEARCH_TERMS = [
-    'polars',
-    'duckdb',
+## Warehouse / Lakehouse
+    'Databricks',
+    'Snowflake',
+    'BigQuery',
+    'Starburst',
+    'dremio',
+
+### Analytics Engine
+    'Spark',
+    'Trino',
+    'Presto',
+    'Pinot',
+
+### Formats
+    'Delta Lake',
+    'Iceberg',
+    'Hudi',
+    'parquet',
+    'avro',
+    'arrow',
+    'orc',
+    'thrift',
+    'protobuf',
+
+### Streaming
+    'Kafka',
+    'Flink',
+    'Confluent',
+    'Redpanda',
+    'Striim',
+
+### Databases
+    'Postgres',
+    'MySQL',
+    'SQLServer',
+    'DynamoDB',
+    'CosmosDB',
+    'MongoDB',
+    'ScyllaDB',
+    'Druid',
+    'Couchbase',
+    'CockroachDB',
+    'MariaDB',
+    'Cassandra',
+    'ClickHouse',
+    'redis',
+    'Neo4j',
+    'Pinecone',
+    'Weaviate',
+    'Qdrant',
+    'chroma',
+    'DuckDB',
+    'SQLite',
+
+### ETL/ELT
     'dbt',
-    'great expectations',
-    'pyarrow',
-    'montecarlo',
-    'pandas',
-    'iceberg',
-    'delta lake',
-    'databricks',
-    'snowflake'
+    'Fivetran',
+    'Airbyte',
+    'Azure Data Factory',
+    'AWS Glue',
+    'Meltano',
+
+### Orchestration
+    'Airflow',
+    'Astronomer',
+    'Dagster',
+    'Prefect',
+    'Mage',
+
+### Data Quality
+    'Collibra',
+    'Monte Carlo',
+    'Soda',
+
+### Machine Learning
+    'PyTorch',
+    'Tensorflow',
+    'Keras',
+    'XGBoost',
+    'LightGBM',
+    'Scikit-Learn',
+    'Vertex AI',
+    'Sagemaker',
+    'Azure Machine Learning',
+    'mlflow',
+    'optuna',
+    'Weights and Biases',
+    'dvc',
+    'Neptune',
+
+### Generative AI
+    'LangChain',
+    'LlamaIndex',
+    'LiteLLM',
+    'guidance',
+    'DSPy',
+    'LMQL',
+    'Haystack',
+    'Ollama',
+    'llamacpp',
+    'OpenLLM',
 ]
