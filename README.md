@@ -55,11 +55,12 @@ This pipeline will also archive processed reddit raw records.
 This pipeline is idempotent and can be used for backfills from archived records.
 
 ### `process_reddit_dag`
-Reddit Submissions and Comments are processed to extract mentions for the [tracked projects](#tracked-projects). After mentions are extracted, they are summarized (with OpenAI gpt-3.5-turbo) and returned as a json record (with format integrity ensured by the guidance framework).
+Reddit Submissions and Comments are processed to extract mentions for the [tracked projects](#tracked-projects). After mentions are extracted, they are summarized (with OpenAI gpt-3.5-turbo) and returned as a struct (with format integrity ensured by Microsoft's [guidance](https://github.com/guidance-ai/guidance) framework), where sentiment analysis can be performed individually, per project mentioned at the submission or comment text.
 
 Data is stored at the production table `reddit_projects_mentions`.
 
-This pipeline is idempotent (with a caveat on the dependency on the OpenAI ChatGPT API) and can be backfilled.
+This pipeline is idempotent (with a caveat on the dependency on the OpenAI ChatGPT API) and can be backfilled. For deterministic results, the Large Language Model temperature can be set to 0 with the dag argument `llm_temperature=0`.
+
 
 ## PyPI
 The PyPI pipeline is an **Write, Audit, Publish** pattern that handles daily updates to the `pypi_file_downloads` production table.

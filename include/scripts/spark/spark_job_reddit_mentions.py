@@ -14,9 +14,11 @@ from pyspark.sql.types import (  # type: ignore
     StringType,
     IntegerType,
     MapType,
+    DoubleType
 )
 from guidance import system, user, assistant, gen
 from guidance.models import OpenAI
+from textblob import TextBlob
 
 
 # %% Build local arguments
@@ -29,6 +31,7 @@ args = getResolvedOptions(
         "submissions_table",
         "comments_table",
         "target_table",
+        "llm_temperature",
     ]
 )
 
@@ -42,6 +45,7 @@ if len(tracked_projects.split(",")) > 1:
 target_table = args["target_table"]
 submissions_table = args["submissions_table"]
 comments_table = args["comments_table"]
+llm_temperature = float(args["llm_temperature"])
 
 
 # %% Initialize Spark session
@@ -95,6 +99,7 @@ def summarize_mentions(
     mentions: str,
     comment: List[str],
     model: str = 'gpt-3.5-turbo',
+    temperature: float = 0.5,
     api_key: str = None
 ) -> Dict[str, str]:
     if api_key:
@@ -118,17 +123,31 @@ Social media comment:
 "{comment}"
 """
     with assistant():
-        lm += "{" + gen(name='json_str', stop="}") + "}"
+        lm += "{" + gen(name='json_str', stop="}", temperature=temperature) + "}"
     
     return json.loads("{" + lm['json_str'] + "}")
+
+def extract_polarity(comments_summary):
+    if comments_summary is None:
+        return None
+    
+    polarity_dict = {}
+    for project, comment in comments_summary.items():
+        blob = TextBlob(comment)
+        polarity = blob.sentiment.polarity
+        polarity_dict[project] = polarity
+    
+    return polarity_dict
 
 # Register UDFs
 find_mentions_udf = udf(find_mentions, MapType(StringType(), IntegerType()))
 summarize_mentions_udf = udf(summarize_mentions, MapType(StringType(), StringType()))
+extract_polarity_udf = udf(extract_polarity, MapType(StringType(), DoubleType()))
 
 
 # %% Spark Job
 # Read from Iceberg tables
+logging.info(f"Reading from submissions table {submissions_table} and comments table {comments_table}...")
 submissions_df = spark \
     .read \
     .table(f'glue_catalog.mad_dashboard_dl.{submissions_table}') \
@@ -165,6 +184,7 @@ comments_df = spark \
 reddit_projects_mentions_df = submissions_df.union(comments_df)
 
 # Extract projects mentions from submissions and comments
+logging.info(f"Extracting mentions of tracked projects from submissions and comments...")
 reddit_projects_mentions_df = reddit_projects_mentions_df.withColumn(
     "projects_mentions",
     find_mentions_udf(
@@ -183,6 +203,7 @@ client = session.client(
 openai_api_key_secret = get_secret(secret_name = "mad_dashboard/OpenAIAPIKey", region_name = "us-west-2")
 openai_api_key = json.loads(openai_api_key_secret)['OPENAI_API_KEY']
 
+logging.info(f"Summarizing mentions of tracked projects from submissions and comments...")
 reddit_projects_mentions_df = reddit_projects_mentions_df.withColumn(
     "projects_mentions_summary",
     when(
@@ -191,9 +212,16 @@ reddit_projects_mentions_df = reddit_projects_mentions_df.withColumn(
             reddit_projects_mentions_df.projects_mentions,
             reddit_projects_mentions_df.text,
             lit('gpt-3.5-turbo'),
+            lit(llm_temperature),
             lit(openai_api_key)
         )
     )
+)
+
+logging.info(f"Extracting polarity of mentions of tracked projects from submissions and comments...")
+reddit_projects_mentions_df = reddit_projects_mentions_df.withColumn(
+    "projects_mentions_polarity",
+    extract_polarity_udf(reddit_projects_mentions_df.projects_mentions_summary)
 )
 
 # Write to target table

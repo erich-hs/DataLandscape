@@ -1,15 +1,13 @@
 import logging
 from airflow.decorators import dag # type: ignore
 from airflow.models import Variable # type: ignore
-from airflow.sensors.external_task_sensor import ExternalTaskSensor # type: ignore
 from airflow.operators.python_operator import PythonOperator # type: ignore
 from airflow.providers.amazon.aws.operators.athena import AthenaOperator # type: ignore
-from airflow.providers.amazon.aws.hooks.s3 import S3Hook
 from datetime import datetime, timedelta
 from include.utils.aws_glue import submit_glue_job
 from include.reference import PROJECTS_SEARCH_TERMS
 
-START_DATE = datetime(2024, 6, 29)
+START_DATE = datetime(2024, 6, 22)
 
 REDDIT_PROJECTS_MENTIONS_TABLE = 'reddit_projects_mentions'
 SUBMISSIONS_TABLE = 'reddit_submissions'
@@ -32,7 +30,8 @@ def reddit_projects_mentions_create_table_query(target_table):
         permalink STRING,
         score INT,
         projects_mentions MAP<STRING, INT>,
-        projects_mentions_summary MAP<STRING, STRING>
+        projects_mentions_summary MAP<STRING, STRING>,
+        projects_mentions_polarity MAP<STRING, DOUBLE>
     )
     PARTITIONED BY (created_date)
     LOCATION 's3://{S3_BUCKET}/data/mad_dashboard_dl/{target_table}'
@@ -58,12 +57,15 @@ def reddit_projects_mentions_create_table_query(target_table):
     tags=["glue", "reddit", "process"]
 )
 def process_reddit_dag():
+    llm_temperature = 0.5
     process_reddit_mentions_script_path = "include/scripts/spark/spark_job_reddit_mentions.py"
 
-    # OpenAI and guidance dependencies
+    # OpenAI, guidance, and TextBlob dependencies
     additional_python_modules=[
         'guidance==0.1.15',
-        'openai==1.35.7'
+        'openai==1.35.7',
+        'textblob==0.18.0.post0'
+
     ]
 
     local_logs_dir = None
@@ -90,7 +92,8 @@ def process_reddit_dag():
                     "--tracked_projects": ",".join(PROJECTS_SEARCH_TERMS),
                     "--submissions_table": SUBMISSIONS_TABLE,
                     "--comments_table": COMMENTS_TABLE,
-                    "--target_table": REDDIT_PROJECTS_MENTIONS_TABLE
+                    "--target_table": REDDIT_PROJECTS_MENTIONS_TABLE,
+                    "--llm_temperature": str(llm_temperature)
                 },
                 "script_path": process_reddit_mentions_script_path,
                 "s3_bucket": S3_BUCKET,
