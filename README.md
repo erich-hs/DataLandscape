@@ -232,7 +232,6 @@ This section will track daily download metrics of the selected data tools and fr
 - LangChain (pypi: langchain)
 - LlamaIndex (pypi: llama-index)
 - LiteLLM (pypi: litellm)
-- guidance (pypi: guidance)
 - DSPy (pypi: dspy-ai)
 - LMQL (pypi: lmql)
 - Haystack (pypi: haystack-ai)
