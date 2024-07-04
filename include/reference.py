@@ -146,7 +146,6 @@ PROJECTS_SEARCH_TERMS = [
     'LangChain',
     'LlamaIndex',
     'LiteLLM',
-    'guidance',
     'DSPy',
     'LMQL',
     'Haystack',
