@@ -177,7 +177,6 @@ submissions_df = spark \
     .read \
     .table(f'glue_catalog.mad_dashboard_dl.{submissions_table}') \
     .where(f"created_date = '{current_date}'") \
-    .limit(100) \
     .select(
         lit('submission').alias('content_type'),
         col('created_utc'),
@@ -194,7 +193,6 @@ comments_df = spark \
     .read \
     .table(f'glue_catalog.mad_dashboard_dl.{comments_table}') \
     .where(f"created_date = '{current_date}'") \
-    .limit(100) \
     .select(
         lit('comment').alias('content_type'),
         col('created_utc'),
@@ -219,6 +217,7 @@ reddit_projects_mentions_df = reddit_projects_mentions_df.withColumn(
         array(*[lit(term) for term in tracked_projects])
     )
 )
+
 
 # Process polarity
 # Retrieve OpenAI API key
