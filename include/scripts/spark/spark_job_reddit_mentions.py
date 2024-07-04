@@ -13,8 +13,11 @@ from pyspark.sql.functions import udf, lit, array, col, when # type: ignore
 from pyspark.sql.types import (  # type: ignore
     StringType,
     IntegerType,
+    DoubleType,
     MapType,
-    DoubleType
+    ArrayType,
+    StructType,
+    StructField
 )
 from guidance import system, user, assistant, gen
 from guidance.models import OpenAI
@@ -76,7 +79,7 @@ def get_secret(secret_name, region_name):
     return secret
 
 def find_mentions(text, look_for):
-    mentions = {}
+    mentions = []
     
     for term in look_for:
         # Split the term into words
@@ -91,17 +94,28 @@ def find_mentions(text, look_for):
         # Store matches
         matches_list = [match.group() for match in matches]
         if matches_list:
-            mentions[term] = len(matches_list)
+            mentions.append(
+                {
+                    "project": term,
+                    "mentions": len(matches_list)
+                }
+            )
     
     return mentions if mentions else None
 
-def summarize_mentions(
-    mentions: str,
-    comment: List[str],
+def summarize_and_extract_polarity(
+    mentions: List[Dict[str, int]],
+    comment: str,
     model: str = 'gpt-3.5-turbo',
     temperature: float = 0.5,
     api_key: str = None
 ) -> Dict[str, str]:
+    if mentions:
+        projects = set([mention['project'] for mention in mentions])
+    else:
+        return None
+    mentions_summaries = []
+
     if api_key:
         lm = OpenAI(model, api_key=api_key, echo=False)
     else:
@@ -115,7 +129,7 @@ def summarize_mentions(
     You never enclose the json object in quotes.
 """
     with user():
-        lm += f"""In the following social media comment the user mentioned the following technologies: {mentions}.
+        lm += f"""In the following social media comment the user mentioned the following technologies: {projects}.
 Provide a one or two-sentence long summary for each technology mentioned by the user, capturing the user perception, experience, or opinion about that technology.
 Give emphasis to the overal sentiment of the user towards each technology if possible.
 
@@ -125,24 +139,35 @@ Social media comment:
     with assistant():
         lm += "{" + gen(name='json_str', stop="}", temperature=temperature) + "}"
     
-    return json.loads("{" + lm['json_str'] + "}")
-
-def extract_polarity(comments_summary):
-    if comments_summary is None:
-        return None
+    mentions_summary = json.loads("{" + lm['json_str'] + "}")
+    if projects:
+        for project in projects:
+            if project in mentions_summary:
+                blob = TextBlob(mentions_summary[project])
+                polarity = blob.sentiment.polarity
+                mentions_summaries.append(
+                    {
+                        "project": project,
+                        "summary": mentions_summary[project],
+                        "polarity": polarity
+                    }
+                )
     
-    polarity_dict = {}
-    for project, comment in comments_summary.items():
-        blob = TextBlob(comment)
-        polarity = blob.sentiment.polarity
-        polarity_dict[project] = polarity
-    
-    return polarity_dict
+    return mentions_summaries if mentions_summaries else None
 
 # Register UDFs
-find_mentions_udf = udf(find_mentions, MapType(StringType(), IntegerType()))
-summarize_mentions_udf = udf(summarize_mentions, MapType(StringType(), StringType()))
-extract_polarity_udf = udf(extract_polarity, MapType(StringType(), DoubleType()))
+mention_schema = StructType([
+    StructField("project", StringType(), True),
+    StructField("mentions", IntegerType(), True)
+])
+find_mentions_udf = udf(find_mentions, ArrayType(mention_schema))
+
+mentions_polarity_schema = StructType([
+    StructField("project", StringType(), True),
+    StructField("summary", StringType(), True),
+    StructField("polarity", DoubleType(), True)
+])
+summarize_and_extract_polarity_udf = udf(summarize_and_extract_polarity, ArrayType(mentions_polarity_schema))
 
 
 # %% Spark Job
@@ -152,8 +177,9 @@ submissions_df = spark \
     .read \
     .table(f'glue_catalog.mad_dashboard_dl.{submissions_table}') \
     .where(f"created_date = '{current_date}'") \
+    .limit(100) \
     .select(
-        lit('submission').alias('type'),
+        lit('submission').alias('content_type'),
         col('created_utc'),
         col('created_date'),
         col('title'),
@@ -168,8 +194,9 @@ comments_df = spark \
     .read \
     .table(f'glue_catalog.mad_dashboard_dl.{comments_table}') \
     .where(f"created_date = '{current_date}'") \
+    .limit(100) \
     .select(
-        lit('comment').alias('type'),
+        lit('comment').alias('content_type'),
         col('created_utc'),
         col('created_date'),
         lit('').alias('title'),
@@ -203,12 +230,12 @@ client = session.client(
 openai_api_key_secret = get_secret(secret_name = "mad_dashboard/OpenAIAPIKey", region_name = "us-west-2")
 openai_api_key = json.loads(openai_api_key_secret)['OPENAI_API_KEY']
 
-logging.info(f"Summarizing mentions of tracked projects from submissions and comments...")
+logging.info(f"Summarizing mentions and calculating polarity of tracked projects from submissions and comments...")
 reddit_projects_mentions_df = reddit_projects_mentions_df.withColumn(
-    "projects_mentions_summary",
+    "projects_mentions_polarity",
     when(
         reddit_projects_mentions_df.projects_mentions.isNotNull(),
-        summarize_mentions_udf(
+        summarize_and_extract_polarity_udf(
             reddit_projects_mentions_df.projects_mentions,
             reddit_projects_mentions_df.text,
             lit('gpt-3.5-turbo'),
@@ -218,11 +245,6 @@ reddit_projects_mentions_df = reddit_projects_mentions_df.withColumn(
     )
 )
 
-logging.info(f"Extracting polarity of mentions of tracked projects from submissions and comments...")
-reddit_projects_mentions_df = reddit_projects_mentions_df.withColumn(
-    "projects_mentions_polarity",
-    extract_polarity_udf(reddit_projects_mentions_df.projects_mentions_summary)
-)
 
 # Write to target table
 reddit_projects_mentions_df \
