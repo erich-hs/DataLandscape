@@ -153,3 +153,12 @@ PROJECTS_SEARCH_TERMS = [
     'llamacpp',
     'OpenLLM',
 ]
+
+# To add:
+### Dashboarding / BI
+# - Looker
+# - Tableau
+# - PowerBI
+# - QuickSight
+# - Superset
+# - Metabase
