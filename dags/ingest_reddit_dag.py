@@ -4,7 +4,7 @@ from airflow.operators.python_operator import PythonOperator # type: ignore
 from datetime import datetime, timedelta
 from include.scripts.scraping_job_reddit import fetch_reddit
 
-START_DATE = datetime(2024, 6, 28)
+START_DATE = datetime(2024, 7, 25)
 SUBREDDITS = [
     "dataengineering",
     "MachineLearning",

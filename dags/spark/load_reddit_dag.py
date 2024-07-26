@@ -8,7 +8,7 @@ from airflow.providers.amazon.aws.hooks.s3 import S3Hook
 from datetime import datetime, timedelta
 from include.utils.aws_glue import submit_glue_job
 
-START_DATE = datetime(2024, 6, 21)
+START_DATE = datetime(2024, 7, 25)
 
 SUBMISSIONS_TABLE = 'reddit_submissions'
 COMMENTS_TABLE = 'reddit_comments'

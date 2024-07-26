@@ -8,7 +8,7 @@ from datetime import datetime, timedelta
 from include.utils.aws_glue import submit_glue_job
 from include.reference import PROJECTS_SEARCH_TERMS
 
-START_DATE = datetime(2024, 6, 21)
+START_DATE = datetime(2024, 7, 25)
 
 REDDIT_PROJECTS_MENTIONS_TABLE = 'reddit_projects_mentions'
 SUBMISSIONS_TABLE = 'reddit_submissions'
