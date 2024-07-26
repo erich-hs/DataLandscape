@@ -1,10 +1,8 @@
 [![Review Assignment Due Date](https://classroom.github.com/assets/deadline-readme-button-24ddc0f5d75046c5622901739e7c5dd533143b0c8e959d652212380cedb1ea36.svg)](https://classroom.github.com/a/1lXY_Wlg)
 
-# MAD Dashboard
-### `M`achine Learning, `A`nalytics, and `D`ata `Dashboard`
+# `Data Landscape` Dashboard
 
-
-Inspired by [Matt Turck](https://www.linkedin.com/in/turck/)'s [MAD Landscape](https://mattturck.com/mad2023/) initiative to help data practitioners navigate and make sense of the rapidly evolving world of data products and frameworks, the **MAD Dashboard** aims at giving a birds-eye-view of the scene with insights about popularity and adoption of these tools.
+Inspired by [Matt Turck](https://www.linkedin.com/in/turck/)'s [MAD Landscape](https://mattturck.com/mad2023/) initiative to help data practitioners navigate and make sense of the rapidly evolving world of data products and frameworks, the **Data Landscape Dashboard** aims at giving a birds-eye-view of the scene with insights about popularity and adoption of tools in Data.
 
 With the project, my goal is to help answering questions such as:
 > - What is the most popular Open Source OLAP Database?
