@@ -4,6 +4,7 @@ mad-dashboard-app-*.json
 # Dev and config directories
 .dev/
 .config/
+.vscode/
 
 # Logs
 .DS_Store
