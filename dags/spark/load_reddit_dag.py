@@ -203,8 +203,8 @@ def load_reddit_dag():
         external_task_id="fetch_reddit"
     )
 
-    create_submissions_table_if_not_exists = AthenaOperator(
-        task_id="create_submissions_table_if_not_exists",
+    create_submissions_table = AthenaOperator(
+        task_id="create_submissions_table",
         depends_on_past=False,
         query=reddit_submissions_create_table_query(SUBMISSIONS_TABLE),
         database="mad_dashboard_dl",
@@ -213,8 +213,8 @@ def load_reddit_dag():
         region_name=AWS_DEFAULT_REGION
     )
 
-    create_comments_table_if_not_exists = AthenaOperator(
-        task_id="create_comments_table_if_not_exists",
+    create_comments_table = AthenaOperator(
+        task_id="create_comments_table",
         depends_on_past=False,
         query=reddit_comments_create_table_query(COMMENTS_TABLE),
         database="mad_dashboard_dl",
@@ -261,8 +261,8 @@ def load_reddit_dag():
     (
         wait_for_reddit_data >>
         [
-            create_submissions_table_if_not_exists,
-            create_comments_table_if_not_exists
+            create_submissions_table,
+            create_comments_table
         ] >>
         ingest_to_production_tables >>
         archive_reddit_data

@@ -76,8 +76,8 @@ def process_reddit_dag():
         external_task_id="ingest_to_production_tables"
     )
 
-    create_reddit_projects_mentions_table_if_not_exists = AthenaOperator(
-        task_id="create_submissions_table_if_not_exists",
+    create_reddit_projects_mentions_table = AthenaOperator(
+        task_id="create_reddit_projects_mentions_table",
         depends_on_past=False,
         query=reddit_projects_mentions_create_table_query(REDDIT_PROJECTS_MENTIONS_TABLE),
         database="mad_dashboard_dl",
@@ -114,7 +114,7 @@ def process_reddit_dag():
     (
         [
             wait_for_reddit_table,
-            create_reddit_projects_mentions_table_if_not_exists
+            create_reddit_projects_mentions_table
         ] >> 
         process_reddit_mentions
     )

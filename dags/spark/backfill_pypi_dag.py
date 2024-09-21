@@ -70,8 +70,8 @@ def backfill_pypi_dag():
     local_logs_dir = None
 
     # Write tasks
-    create_production_table_if_not_exists = AthenaOperator(
-        task_id="create_production_table_if_not_exists",
+    create_production_table = AthenaOperator(
+        task_id="create_production_table",
         depends_on_past=False,
         query=pypi_create_table_query(PRODUCTION_TABLE),
         database="mad_dashboard_dl",
@@ -104,7 +104,7 @@ def backfill_pypi_dag():
     )
 
     (
-        create_production_table_if_not_exists >>
+        create_production_table >>
         ingest_to_production_table
     )
 

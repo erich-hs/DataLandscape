@@ -74,8 +74,8 @@ def load_pypi_dag():
     local_logs_dir = None
 
     # Write tasks
-    create_staging_table_if_not_exists = AthenaOperator(
-        task_id="create_staging_table_if_not_exists",
+    create_staging_table = AthenaOperator(
+        task_id="create_staging_table",
         depends_on_past=False,
         query=pypi_create_table_query(STAGING_TABLE),
         database="mad_dashboard_dl",
@@ -133,8 +133,8 @@ def load_pypi_dag():
     )
 
     # Publish tasks
-    create_production_table_if_not_exists = AthenaOperator(
-        task_id="create_production_table_if_not_exists",
+    create_production_table = AthenaOperator(
+        task_id="create_production_table",
         depends_on_past=False,
         query=pypi_create_table_query(PRODUCTION_TABLE),
         database="mad_dashboard_dl",
@@ -202,11 +202,11 @@ def load_pypi_dag():
     )
 
     (
-        create_staging_table_if_not_exists >>
+        create_staging_table >>
         ingest_to_staging_table >>
         is_latest_dag_run >>
         audit_staging_table >>
-        create_production_table_if_not_exists >>
+        create_production_table >>
         exchange_step >>
         cleanup_step
     )
