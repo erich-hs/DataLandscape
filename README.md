@@ -1,4 +1,4 @@
-# `Data Landscape` Dashboard
+# `Data` `Landscape` `Dashboard`
 
 Inspired by [Matt Turck](https://www.linkedin.com/in/turck/)'s [MAD Landscape](https://mattturck.com/mad2023/) initiative to help data practitioners navigate and make sense of the rapidly evolving world of data products and frameworks, the **Data Landscape Dashboard** aims at giving a birds-eye-view of the scene with insights about popularity and adoption of tools in Data.
 
