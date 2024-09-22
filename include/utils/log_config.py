@@ -3,7 +3,6 @@ import logging
 import boto3
 from io import StringIO
 from pathlib import Path
-from dotenv import load_dotenv
 from logging.handlers import RotatingFileHandler
 from datetime import datetime, UTC
 from typing import Optional
