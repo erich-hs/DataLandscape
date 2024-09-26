@@ -1,4 +1,3 @@
-import logging
 from airflow.decorators import dag # type: ignore
 from airflow.models import Variable # type: ignore
 from airflow.sensors.external_task_sensor import ExternalTaskSensor # type: ignore
@@ -19,7 +18,10 @@ AWS_ACCES_KEY_ID = Variable.get('AWS_ACCESS_KEY_ID')
 AWS_SECRET_ACCESS_KEY = Variable.get('AWS_SECRET_ACCESS_KEY')
 AWS_DEFAULT_REGION = Variable.get('AWS_DEFAULT_REGION')
 
+LLM_MODEL = 'gpt-4o-mini-2024-07-18'
+LLM_MAX_COMPLETION_TOKENS = 1000
 LLM_TEMPERATURE = 0.5
+LLM_TIMEOUT = 60
 
 def reddit_projects_mentions_create_table_query(target_table):
     return f"""CREATE TABLE IF NOT EXISTS {target_table} (
@@ -63,9 +65,9 @@ def process_reddit_dag():
 
     # OpenAI, guidance, and TextBlob dependencies
     additional_python_modules=[
-        'guidance==0.1.15',
-        'openai==1.35.7',
-        'textblob==0.18.0.post0'
+        'pydantic==2.9.2',
+        'pydantic_core==2.23.4',
+        'openai==1.47.1'
     ]
 
     local_logs_dir = None
@@ -99,7 +101,10 @@ def process_reddit_dag():
                     "--submissions_table": SUBMISSIONS_TABLE,
                     "--comments_table": COMMENTS_TABLE,
                     "--target_table": REDDIT_PROJECTS_MENTIONS_TABLE,
-                    "--llm_temperature": str(LLM_TEMPERATURE)
+                    "--llm_model": LLM_MODEL,
+                    "--llm_max_completion_tokens": str(LLM_MAX_COMPLETION_TOKENS),
+                    "--llm_temperature": str(LLM_TEMPERATURE),
+                    "--llm_timeout": str(LLM_TIMEOUT)
                 },
                 "script_path": process_reddit_mentions_script_path,
                 "s3_bucket": S3_BUCKET,

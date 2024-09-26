@@ -14,14 +14,15 @@ from pyspark.sql.types import (  # type: ignore
     StringType,
     IntegerType,
     DoubleType,
-    MapType,
     ArrayType,
     StructType,
     StructField
 )
-from guidance import system, user, assistant, gen
-from guidance.models import OpenAI
-from textblob import TextBlob
+from pydantic import BaseModel
+from openai import OpenAI
+# from guidance import system, user, assistant, gen
+# from guidance.models import OpenAI
+# from textblob import TextBlob
 
 
 # %% Build local arguments
@@ -34,7 +35,10 @@ args = getResolvedOptions(
         "submissions_table",
         "comments_table",
         "target_table",
+        "llm_model",
+        "llm_max_completion_tokens",
         "llm_temperature",
+        "llm_timeout"
     ]
 )
 
@@ -48,7 +52,10 @@ if len(tracked_projects.split(",")) > 1:
 target_table = args["target_table"]
 submissions_table = args["submissions_table"]
 comments_table = args["comments_table"]
+llm_model = args["llm_model"]
+llm_max_completion_tokens = int(args["llm_max_completion_tokens"])
 llm_temperature = float(args["llm_temperature"])
+llm_timeout = int(args["llm_timeout"])
 
 
 # %% Initialize Spark session
@@ -60,7 +67,10 @@ glueContext = GlueContext(spark.sparkContext)
 spark = glueContext.spark_session
 
 # %% Define auxiliary functions
-def get_secret(secret_name, region_name):
+def get_secret(
+    secret_name: str,
+    region_name: str
+) -> str:
     # Create a Secrets Manager client
     session = boto3.session.Session()
     client = session.client(
@@ -78,20 +88,21 @@ def get_secret(secret_name, region_name):
     secret = get_secret_value_response['SecretString']
     return secret
 
-def find_mentions(text, look_for):
+def find_mentions(
+        text: str,
+        look_for: List[str]
+) -> List[Dict[str, int]]:
     mentions = []
     
     for term in look_for:
         # Split the term into words
         words = re.split(r'[-\s]+', term)
         
-        # Create a regex pattern that matches words with optional hyphens between them
+        # Match words with optional hyphens in-between
         pattern = r'\b' + r'[-\s]?'.join(re.escape(word) for word in words) + r'\b'
         
         # Find all matches
         matches = re.finditer(pattern, text, re.IGNORECASE)
-        
-        # Store matches
         matches_list = [match.group() for match in matches]
         if matches_list:
             mentions.append(
@@ -106,54 +117,64 @@ def find_mentions(text, look_for):
 def summarize_and_extract_polarity(
     mentions: List[Dict[str, int]],
     comment: str,
-    model: str = 'gpt-3.5-turbo',
+    model: str,
+    max_completion_tokens: int = 1000,
     temperature: float = 0.5,
+    timeout: int = 60,
     api_key: str = None
-) -> Dict[str, str]:
+) -> List[Dict[str, str]]:
     if mentions:
         projects = set([mention['project'] for mention in mentions])
     else:
         return None
-    mentions_summaries = []
 
-    if api_key:
-        lm = OpenAI(model, api_key=api_key, echo=False)
-    else:
-        lm = OpenAI(model, echo=False)
+    mentions_polarities = []
 
-    with system():
-        lm += """You always respond with json objects with no identation. You use the following format:
-{"technology one": "Summarized user perception, experience, or opinion about technology one in one or two sentences.", "technology two": "Summarized user perception, experience, or opinion about technology two in one or two sentences.", "technology three": "Summarized user perception, experience, or opinion about technology three in one or two sentences."}
-    You never return a json record for a technology that was not specifically indicated at the user prompt.
-    You never enclose the json object in a list or array.
-    You never enclose the json object in quotes.
-"""
-    with user():
-        lm += f"""In the following social media comment the user mentioned the following technologies: {projects}.
-Provide a one or two-sentence long summary for each technology mentioned by the user, capturing the user perception, experience, or opinion about that technology.
-Give emphasis to the overal sentiment of the user towards each technology if possible.
+    # OpenAI Structured Output schema
+    class TechnologyPolarity(BaseModel):
+        technology_name: str
+        summary: str
+        polarity: float
 
-Social media comment:
-"{comment}"
-"""
-    with assistant():
-        lm += "{" + gen(name='json_str', stop="}", temperature=temperature) + "}"
+    class Polarities(BaseModel):
+        polarities: list[TechnologyPolarity]
+
+    client = OpenAI(api_key=api_key)
+
+    target_schema = [{"technology_name": "Technology One", "summary": "Summarized user perception, experience, or opinion about Technology One in one or two sentences.", "polarity": 0.56}, {"technology_name": "Technology Two", "summary": "Summarized user perception, experience, or opinion about Technology Two in one or two sentences.", "polarity": -0.12}, {"technology_name": "Technology Three", "summary": "Summarized user perception, experience, or opinion about Technology Three in one or two sentences.", "polarity": 0.73}]
+
+    system_prompt = f"""You are an expert at sentiment analysis and structured data extraction. You will be given unstructured text from a social media comment and a list of technology names mentioned in that text.
+Your task is to summarize in one or two sentences the user perception, experience, or opinion about each technology from the list provided, and based on that summary calculate a polarity score between -1.00 and 1.00 for each technology, where -1.00 is extremely negative, 0.00 is neutral, and 1.00 is extremely positive.
+The polarity score for a given technology should represent the overall sentiment of the user towards that technology.
+You should only return summaries for the technologies present in the list provided.
+You should return a list of JSON objects with the following format: {target_schema}"""
     
-    mentions_summary = json.loads("{" + lm['json_str'] + "}")
-    if projects:
-        for project in projects:
-            if project in mentions_summary:
-                blob = TextBlob(mentions_summary[project])
-                polarity = blob.sentiment.polarity
-                mentions_summaries.append(
-                    {
-                        "project": project,
-                        "summary": mentions_summary[project],
-                        "polarity": polarity
-                    }
-                )
+    user_prompt = f"""Technologies mentioned: {projects}.
+Social media comment: {comment}"""
+
+    completion = client.beta.chat.completions.parse(
+        model=model,
+        messages=[
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_prompt}
+        ],
+        max_completion_tokens=max_completion_tokens,
+        timeout=timeout,
+        temperature=temperature,
+        response_format=Polarities
+    )
+
+    for project in completion.choices[0].message.parsed.polarities:
+        mentions_polarities.append(
+            {
+                "project": project.technology_name,
+                "summary": project.summary,
+                "polarity": project.polarity
+            }
+        )
     
-    return mentions_summaries if mentions_summaries else None
+    return mentions_polarities if mentions_polarities else None
+
 
 # Register UDFs
 mention_schema = StructType([
@@ -162,12 +183,12 @@ mention_schema = StructType([
 ])
 find_mentions_udf = udf(find_mentions, ArrayType(mention_schema))
 
-mentions_polarity_schema = StructType([
+mentions_polarities_schema = StructType([
     StructField("project", StringType(), True),
     StructField("summary", StringType(), True),
     StructField("polarity", DoubleType(), True)
 ])
-summarize_and_extract_polarity_udf = udf(summarize_and_extract_polarity, ArrayType(mentions_polarity_schema))
+summarize_and_extract_polarity_udf = udf(summarize_and_extract_polarity, ArrayType(mentions_polarities_schema))
 
 
 # %% Spark Job
@@ -218,6 +239,12 @@ reddit_projects_mentions_df = reddit_projects_mentions_df.withColumn(
     )
 )
 
+# # Temporary dummy column
+# reddit_projects_mentions_df = reddit_projects_mentions_df.withColumn(
+#         "projects_mentions_polarity",
+#         lit(None)
+#     )
+
 
 # Process polarity
 # Retrieve OpenAI API key
@@ -237,8 +264,10 @@ reddit_projects_mentions_df = reddit_projects_mentions_df.withColumn(
         summarize_and_extract_polarity_udf(
             reddit_projects_mentions_df.projects_mentions,
             reddit_projects_mentions_df.text,
-            lit('gpt-3.5-turbo'),
+            lit(llm_model),
+            lit(llm_max_completion_tokens),
             lit(llm_temperature),
+            lit(llm_timeout),
             lit(openai_api_key)
         )
     )
