@@ -20,9 +20,6 @@ from pyspark.sql.types import (  # type: ignore
 )
 from pydantic import BaseModel
 from openai import OpenAI
-# from guidance import system, user, assistant, gen
-# from guidance.models import OpenAI
-# from textblob import TextBlob
 
 
 # %% Build local arguments
@@ -239,15 +236,8 @@ reddit_projects_mentions_df = reddit_projects_mentions_df.withColumn(
     )
 )
 
-# # Temporary dummy column
-# reddit_projects_mentions_df = reddit_projects_mentions_df.withColumn(
-#         "projects_mentions_polarity",
-#         lit(None)
-#     )
-
 
 # Process polarity
-# Retrieve OpenAI API key
 session = boto3.session.Session()
 client = session.client(
     service_name='secretsmanager',
