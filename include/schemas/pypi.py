@@ -8,7 +8,7 @@ def pypi_file_downloads_query(
     if isinstance(project, str):
         project_where_clause = f"project = '{project}'"
     elif isinstance(project, list):
-        project_where_clause = f"project IN ({', '.join([f'"{p}"' for p in project])})"
+        project_where_clause = f"""project IN ({', '.join([f'"{p}"' for p in project])})"""
     return f"""SELECT
     CAST(date_trunc(timestamp, DAY) AS DATE) AS download_date,
     project,
