@@ -31,12 +31,24 @@ GROUP BY
     details.system.name
 """
 
-pypi_file_downloads_schema = """
-    download_date DATE,
-    project STRING,
-    project_version STRING,
-    python STRING,
-    system_name STRING,
-    country_code STRING,
-    download_count INT
-"""
+def pypi_create_table_query(
+        target_table: str,
+        location: str
+) -> str:
+    return f"""CREATE TABLE IF NOT EXISTS {target_table} (
+        download_date DATE,
+        project STRING,
+        project_version STRING,
+        python STRING,
+        system_name STRING,
+        country_code STRING,
+        download_count INT
+    )
+    PARTITIONED BY (download_date)
+    LOCATION 's3://{location}'
+    TBLPROPERTIES (
+        'table_type'='ICEBERG',
+        'format'='parquet',
+        'write_compression'='snappy'
+    )
+    """

@@ -5,6 +5,7 @@ from airflow.providers.amazon.aws.operators.athena import AthenaOperator # type:
 from airflow.operators.latest_only_operator import LatestOnlyOperator # type: ignore
 from datetime import datetime, timedelta
 from include.utils.aws_glue import submit_glue_job
+from include.schemas.pypi import pypi_create_table_query
 from include.reference import PYPI_PROJECTS
 
 START_DATE = datetime(2024, 7, 25)
@@ -18,24 +19,6 @@ AWS_ACCES_KEY_ID = Variable.get('AWS_ACCESS_KEY_ID')
 AWS_SECRET_ACCESS_KEY = Variable.get('AWS_SECRET_ACCESS_KEY')
 AWS_DEFAULT_REGION = Variable.get('AWS_DEFAULT_REGION')
 
-def pypi_create_table_query(target_table):
-    return f"""CREATE TABLE IF NOT EXISTS {target_table} (
-        download_date DATE,
-        project STRING,
-        project_version STRING,
-        python STRING,
-        system_name STRING,
-        country_code STRING,
-        download_count INT
-    )
-    PARTITIONED BY (download_date)
-    LOCATION 's3://{S3_BUCKET}/data/mad_dashboard_dl/{target_table}'
-    TBLPROPERTIES (
-        'table_type'='ICEBERG',
-        'format'='parquet',
-        'write_compression'='snappy'
-    )
-    """
 
 @dag(
     "load_pypi",
@@ -77,7 +60,7 @@ def load_pypi_dag():
     create_staging_table = AthenaOperator(
         task_id="create_staging_table",
         depends_on_past=False,
-        query=pypi_create_table_query(STAGING_TABLE),
+        query=pypi_create_table_query(target_table=STAGING_TABLE, location=f'{S3_BUCKET}/data/mad_dashboard_dl/{STAGING_TABLE}'),
         database="mad_dashboard_dl",
         output_location=f's3://{S3_BUCKET}/athena_results',
         sleep_time=10,
@@ -136,7 +119,7 @@ def load_pypi_dag():
     create_production_table = AthenaOperator(
         task_id="create_production_table",
         depends_on_past=False,
-        query=pypi_create_table_query(PRODUCTION_TABLE),
+        query=pypi_create_table_query(target_table=PRODUCTION_TABLE, location=f'{S3_BUCKET}/data/mad_dashboard_dl/{PRODUCTION_TABLE}'),
         database="mad_dashboard_dl",
         output_location=f's3://{S3_BUCKET}/athena_results',
         sleep_time=10,
