@@ -6,9 +6,11 @@ from airflow.operators.latest_only_operator import LatestOnlyOperator # type: ig
 from datetime import datetime, timedelta
 from include.utils.aws_glue import submit_glue_job
 from include.schemas.pypi import pypi_create_table_query
-from include.reference import PYPI_PROJECTS
+from include.reference import TRACKED_PROJECTS_JSON
 
 START_DATE = datetime(2024, 7, 25)
+
+PYPI_PROJECTS = {project['pypi'] for project in TRACKED_PROJECTS_JSON if project['pypi']}
 
 STAGING_TABLE = 'stg_pypi_file_downloads'
 PRODUCTION_TABLE = 'pypi_file_downloads'

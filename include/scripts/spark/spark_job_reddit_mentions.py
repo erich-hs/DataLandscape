@@ -28,7 +28,7 @@ args = getResolvedOptions(
     [
         "JOB_NAME",
         "ds",
-        "tracked_projects",
+        "tracked_projects_json",
         "submissions_table",
         "comments_table",
         "target_table",
@@ -40,12 +40,6 @@ args = getResolvedOptions(
 )
 
 current_date = args["ds"]
-tracked_projects = args["tracked_projects"]
-
-if len(tracked_projects.split(",")) > 1:
-    # Handle multiple PyPI projects
-    tracked_projects = tracked_projects.split(",")
-
 target_table = args["target_table"]
 submissions_table = args["submissions_table"]
 comments_table = args["comments_table"]
@@ -53,6 +47,8 @@ llm_model = args["llm_model"]
 llm_max_completion_tokens = int(args["llm_max_completion_tokens"])
 llm_temperature = float(args["llm_temperature"])
 llm_timeout = int(args["llm_timeout"])
+
+TRACKED_PROJECTS_JSON = json.loads(args["tracked_projects_json"])
 
 
 # %% Initialize Spark session
@@ -85,29 +81,31 @@ def get_secret(
     secret = get_secret_value_response['SecretString']
     return secret
 
-def find_mentions(
-        text: str,
-        look_for: List[str]
-) -> List[Dict[str, int]]:
+def find_mentions(text: str) -> List[Dict[str, int]]:
     mentions = []
     
-    for term in look_for:
-        # Split the term into words
-        words = re.split(r'[-\s]+', term)
-        
-        # Match words with optional hyphens in-between
-        pattern = r'\b' + r'[-\s]?'.join(re.escape(word) for word in words) + r'\b'
-        
-        # Find all matches
-        matches = re.finditer(pattern, text, re.IGNORECASE)
-        matches_list = [match.group() for match in matches]
-        if matches_list:
-            mentions.append(
-                {
-                    "project": term,
-                    "mentions": len(matches_list)
-                }
-            )
+    # The TRACKED_PROJECTS_JSON is defined as a global variable and broadcasted via the Spark UDF
+    for project in TRACKED_PROJECTS_JSON:
+        project_name = project['project_name']
+        project_search_terms = project['project_search_terms']
+
+        for term in project_search_terms:
+            # Split the term into words
+            words = re.split(r'[-\s]+', term)
+            
+            # Match words with optional hyphens in-between
+            pattern = r'\b' + r'[-\s]?'.join(re.escape(word) for word in words) + r'\b'
+            
+            # Find all matches
+            matches = re.finditer(pattern, text, re.IGNORECASE)
+            matches_list = [match.group() for match in matches]
+            if matches_list:
+                mentions.append(
+                    {
+                        "project": project_name,
+                        "mentions": len(matches_list)
+                    }
+                )
     
     return mentions if mentions else None
 
@@ -230,10 +228,7 @@ reddit_projects_mentions_df = submissions_df.union(comments_df)
 logging.info(f"Extracting mentions of tracked projects from submissions and comments...")
 reddit_projects_mentions_df = reddit_projects_mentions_df.withColumn(
     "projects_mentions",
-    find_mentions_udf(
-        reddit_projects_mentions_df.text, 
-        array(*[lit(term) for term in tracked_projects])
-    )
+    find_mentions_udf(reddit_projects_mentions_df.text)
 )
 
 

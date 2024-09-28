@@ -1,3 +1,4 @@
+import json
 from airflow.decorators import dag # type: ignore
 from airflow.models import Variable # type: ignore
 from airflow.sensors.external_task_sensor import ExternalTaskSensor # type: ignore
@@ -5,7 +6,7 @@ from airflow.operators.python_operator import PythonOperator # type: ignore
 from airflow.providers.amazon.aws.operators.athena import AthenaOperator # type: ignore
 from datetime import datetime, timedelta
 from include.utils.aws_glue import submit_glue_job
-from include.reference import PROJECTS_SEARCH_TERMS
+from include.reference import TRACKED_PROJECTS_JSON
 
 START_DATE = datetime(2024, 7, 25)
 
@@ -97,7 +98,7 @@ def process_reddit_dag():
                 "job_description": 'Process Reddit Submissions and Comments mentions of tracked projects.',
                 "run_arguments": {
                     "--ds": "{{ ds }}",
-                    "--tracked_projects": ",".join(PROJECTS_SEARCH_TERMS),
+                    "--tracked_projects_json": json.dumps(TRACKED_PROJECTS_JSON),
                     "--submissions_table": SUBMISSIONS_TABLE,
                     "--comments_table": COMMENTS_TABLE,
                     "--target_table": REDDIT_PROJECTS_MENTIONS_TABLE,
