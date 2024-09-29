@@ -88,24 +88,28 @@ def find_mentions(text: str) -> List[Dict[str, int]]:
     for project in TRACKED_PROJECTS_JSON:
         project_name = project['project_name']
         project_search_terms = project['project_search_terms']
+        project_mentions_count = 0
 
         for term in project_search_terms:
             # Split the term into words
             words = re.split(r'[-\s]+', term)
             
-            # Match words with optional hyphens in-between
+            # Match words altogether or with hyphens or with empty spaces in-between
             pattern = r'\b' + r'[-\s]?'.join(re.escape(word) for word in words) + r'\b'
             
             # Find all matches
             matches = re.finditer(pattern, text, re.IGNORECASE)
             matches_list = [match.group() for match in matches]
             if matches_list:
-                mentions.append(
-                    {
-                        "project": project_name,
-                        "mentions": len(matches_list)
-                    }
-                )
+                project_mentions_count += len(matches_list)
+
+        if project_mentions_count > 0:
+            mentions.append(
+                {
+                    "project": project_name,
+                    "mentions": project_mentions_count
+                }
+            )
     
     return mentions if mentions else None
 
