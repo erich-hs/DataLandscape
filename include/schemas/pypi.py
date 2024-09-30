@@ -36,19 +36,41 @@ def pypi_create_table_query(
         location: str
 ) -> str:
     return f"""CREATE TABLE IF NOT EXISTS {target_table} (
-        download_date DATE,
-        project STRING,
-        project_version STRING,
-        python STRING,
-        system_name STRING,
-        country_code STRING,
-        download_count INT
-    )
-    PARTITIONED BY (download_date)
-    LOCATION 's3://{location}'
-    TBLPROPERTIES (
-        'table_type'='ICEBERG',
-        'format'='parquet',
-        'write_compression'='snappy'
-    )
-    """
+    download_date DATE,
+    project STRING,
+    project_version STRING,
+    python STRING,
+    system_name STRING,
+    country_code STRING,
+    download_count INT
+)
+PARTITIONED BY (download_date)
+LOCATION 's3://{location}'
+TBLPROPERTIES (
+    'table_type'='ICEBERG',
+    'format'='parquet',
+    'write_compression'='snappy'
+)
+"""
+
+def pypi_aggregate_create_table_query(
+        target_table: str,
+        location: str
+) -> str:
+    return f"""CREATE TABLE IF NOT EXISTS {target_table} (
+    reference_date DATE,
+    project STRING,
+    project_version STRING,
+    country_code STRING,
+    downloads_last_7_days INT,
+    downloads_last_30_days INT
+)
+COMMENT 'Aggregate table for PyPI file downloads with total download count per project, per project version, per country for the last seven and last thirty days.'
+PARTITIONED BY (reference_date)
+LOCATION 's3://{location}'
+TBLPROPERTIES (
+    'table_type'='ICEBERG',
+    'format'='parquet',
+    'write_compression'='snappy'
+)
+"""

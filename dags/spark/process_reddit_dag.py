@@ -6,6 +6,7 @@ from airflow.operators.python_operator import PythonOperator # type: ignore
 from airflow.providers.amazon.aws.operators.athena import AthenaOperator # type: ignore
 from datetime import datetime, timedelta
 from include.utils.aws_glue import submit_glue_job
+from include.schemas.reddit import reddit_projects_mentions_create_table_query
 from include.reference import TRACKED_PROJECTS_JSON
 
 START_DATE = datetime(2024, 7, 25)
@@ -24,28 +25,6 @@ LLM_MAX_COMPLETION_TOKENS = 1000
 LLM_TEMPERATURE = 0.5
 LLM_TIMEOUT = 60
 
-def reddit_projects_mentions_create_table_query(target_table):
-    return f"""CREATE TABLE IF NOT EXISTS {target_table} (
-        content_type STRING,
-        created_utc DOUBLE,
-        created_date DATE,
-        title STRING,
-        id STRING,
-        subreddit STRING,
-        text STRING,
-        permalink STRING,
-        score INT,
-        projects_mentions ARRAY<STRUCT<project:STRING, mentions:INT>>,
-        projects_mentions_polarity ARRAY<STRUCT<project:STRING, summary:STRING, polarity:DOUBLE>>
-    )
-    PARTITIONED BY (created_date)
-    LOCATION 's3://{S3_BUCKET}/data/mad_dashboard_dl/{target_table}'
-    TBLPROPERTIES (
-        'table_type'='ICEBERG',
-        'format'='parquet',
-        'write_compression'='snappy'
-    )
-    """
 
 @dag(
     "process_reddit",
@@ -82,7 +61,10 @@ def process_reddit_dag():
     create_reddit_projects_mentions_table = AthenaOperator(
         task_id="create_reddit_projects_mentions_table",
         depends_on_past=False,
-        query=reddit_projects_mentions_create_table_query(REDDIT_PROJECTS_MENTIONS_TABLE),
+        query=reddit_projects_mentions_create_table_query(
+            target_table=REDDIT_PROJECTS_MENTIONS_TABLE,
+            location=f'{S3_BUCKET}/data/mad_dashboard_dl/{REDDIT_PROJECTS_MENTIONS_TABLE}'
+        ),
         database="mad_dashboard_dl",
         output_location=f's3://{S3_BUCKET}/athena_results',
         sleep_time=10,
