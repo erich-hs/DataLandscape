@@ -31,7 +31,7 @@ GROUP BY
     details.system.name
 """
 
-def pypi_create_table_query(
+def pypi_file_downloads_create_table_query(
         target_table: str,
         location: str
 ) -> str:
@@ -53,7 +53,7 @@ TBLPROPERTIES (
 )
 """
 
-def pypi_aggregate_create_table_query(
+def agg_pypi_file_downloads_create_table_query(
         target_table: str,
         location: str
 ) -> str:

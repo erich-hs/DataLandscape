@@ -3,7 +3,7 @@ from airflow.models import Variable # type: ignore
 from airflow.sensors.external_task_sensor import ExternalTaskSensor # type: ignore
 from airflow.providers.amazon.aws.operators.athena import AthenaOperator # type: ignore
 from datetime import datetime, timedelta
-from include.schemas.pypi import pypi_aggregate_create_table_query
+from include.schemas.pypi import agg_pypi_file_downloads_create_table_query
 from include.scripts.athena.pypi import pypi_aggregate_insert_query
 
 START_DATE = datetime(2024, 9, 1)
@@ -40,7 +40,7 @@ def aggregate_pypi_dag():
     create_agg_pypi_table = AthenaOperator(
         task_id="create_agg_pypi_table",
         depends_on_past=False,
-        query=pypi_aggregate_create_table_query(
+        query=agg_pypi_file_downloads_create_table_query(
             target_table=PRODUCTION_TABLE,
             location=f'{S3_BUCKET}/data/mad_dashboard_dl/{PRODUCTION_TABLE}'
         ),

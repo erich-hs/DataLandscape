@@ -4,7 +4,7 @@ from airflow.operators.python_operator import PythonOperator # type: ignore
 from airflow.providers.amazon.aws.operators.athena import AthenaOperator # type: ignore
 from datetime import datetime, timedelta
 from include.utils.aws_glue import submit_glue_job
-from include.schemas.pypi import pypi_create_table_query
+from include.schemas.pypi import pypi_file_downloads_create_table_query
 from include.reference import TRACKED_PROJECTS_JSON
 
 START_DATE = datetime(2024, 1, 1)
@@ -58,7 +58,7 @@ def backfill_pypi_dag():
     create_production_table = AthenaOperator(
         task_id="create_production_table",
         depends_on_past=False,
-        query=pypi_create_table_query(target_table=PRODUCTION_TABLE, location=f'{S3_BUCKET}/data/mad_dashboard_dl/{PRODUCTION_TABLE}'),
+        query=pypi_file_downloads_create_table_query(target_table=PRODUCTION_TABLE, location=f'{S3_BUCKET}/data/mad_dashboard_dl/{PRODUCTION_TABLE}'),
         database="mad_dashboard_dl",
         output_location=f's3://{S3_BUCKET}/athena_results',
         sleep_time=10,
