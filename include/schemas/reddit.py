@@ -279,3 +279,28 @@ TBLPROPERTIES (
     'write_compression'='snappy'
 )
 """
+
+def agg_reddit_cumulative_mentions_polarity_create_table_query(
+        target_table: str,
+        location: str
+) -> str:
+    return f"""CREATE TABLE IF NOT EXISTS {target_table} (
+    reference_date DATE,
+    project STRING,
+    mentions_count INT,
+    avg_polarity DOUBLE,
+    mentions_count_last_7_days INT,
+    avg_polarity_last_7_days DOUBLE,
+    mentions_count_last_30_days INT,
+    avg_polarity_last_30_days DOUBLE,
+    mentions_count_last_90_days INT,
+    avg_polarity_last_90_days DOUBLE
+)
+PARTITIONED BY (reference_date)
+LOCATION 's3://{location}'
+TBLPROPERTIES (
+    'table_type'='ICEBERG',
+    'format'='parquet',
+    'write_compression'='snappy'
+)
+"""
