@@ -53,7 +53,7 @@ TBLPROPERTIES (
 )
 """
 
-def agg_pypi_file_downloads_create_table_query(
+def agg_pypi_cumulative_file_downloads_create_table_query(
         target_table: str,
         location: str
 ) -> str:
@@ -62,10 +62,12 @@ def agg_pypi_file_downloads_create_table_query(
     project STRING,
     project_version STRING,
     country_code STRING,
-    downloads_last_7_days INT,
-    downloads_last_30_days INT
+    download_count INT,
+    download_count_last_7_days INT,
+    download_count_last_30_days INT,
+    download_count_last_90_days INT
 )
-COMMENT 'Aggregate table for PyPI file downloads with total download count per project, per project version, per country for the last seven and last thirty days.'
+COMMENT 'Aggregate table for PyPI file downloads with total download count per project, per project version, per country for today and for the last seven, last thirty and last ninety days.'
 PARTITIONED BY (reference_date)
 LOCATION 's3://{location}'
 TBLPROPERTIES (

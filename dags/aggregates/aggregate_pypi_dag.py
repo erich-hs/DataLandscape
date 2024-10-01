@@ -3,12 +3,12 @@ from airflow.models import Variable # type: ignore
 from airflow.sensors.external_task_sensor import ExternalTaskSensor # type: ignore
 from airflow.providers.amazon.aws.operators.athena import AthenaOperator # type: ignore
 from datetime import datetime, timedelta
-from include.schemas.pypi import agg_pypi_file_downloads_create_table_query
-from include.scripts.athena.pypi import pypi_aggregate_insert_query
+from include.schemas.pypi import agg_pypi_cumulative_file_downloads_create_table_query
+from include.scripts.athena.pypi import pypi_cumulative_aggregate_insert_query
 
-START_DATE = datetime(2024, 9, 1)
+START_DATE = datetime(2024, 9, 30)
 
-PRODUCTION_TABLE = 'agg_pypi_file_downloads'
+PRODUCTION_TABLE = 'agg_pypi_cumulative_file_downloads'
 
 S3_BUCKET = Variable.get('AWS_S3_BUCKET')
 AWS_ACCES_KEY_ID = Variable.get('AWS_ACCESS_KEY_ID')
@@ -37,10 +37,10 @@ def aggregate_pypi_dag():
         external_task_id="exchange_step"
     )
 
-    create_agg_pypi_table = AthenaOperator(
-        task_id="create_agg_pypi_table",
+    create_cumulative_agg_pypi_table = AthenaOperator(
+        task_id="create_cumulative_agg_pypi_table",
         depends_on_past=False,
-        query=agg_pypi_file_downloads_create_table_query(
+        query=agg_pypi_cumulative_file_downloads_create_table_query(
             target_table=PRODUCTION_TABLE,
             location=f'{S3_BUCKET}/data/mad_dashboard_dl/{PRODUCTION_TABLE}'
         ),
@@ -50,8 +50,8 @@ def aggregate_pypi_dag():
         region_name=AWS_DEFAULT_REGION
     )
 
-    truncate_partition = AthenaOperator(
-        task_id="truncate_partition",
+    truncate_cumulative_agg_partition = AthenaOperator(
+        task_id="truncate_cumulative_agg_partition",
         depends_on_past=False,
         query=f"""DELETE FROM {PRODUCTION_TABLE} WHERE reference_date = DATE('{{{{ ds }}}}')""",
         database="mad_dashboard_dl",
@@ -63,7 +63,7 @@ def aggregate_pypi_dag():
     aggregate_and_insert_data = AthenaOperator(
         task_id="aggregate_and_insert_data",
         depends_on_past=False,
-        query=pypi_aggregate_insert_query(target_table=PRODUCTION_TABLE, reference_date='{{ ds }}'),
+        query=pypi_cumulative_aggregate_insert_query(target_table=PRODUCTION_TABLE, reference_date='{{ ds }}'),
         database="mad_dashboard_dl",
         output_location=f's3://{S3_BUCKET}/athena_results',
         sleep_time=30,
@@ -72,8 +72,8 @@ def aggregate_pypi_dag():
 
     (
         wait_for_pypi_table
-        >> create_agg_pypi_table
-        >> truncate_partition
+        >> create_cumulative_agg_pypi_table
+        >> truncate_cumulative_agg_partition
         >> aggregate_and_insert_data
     )
 
