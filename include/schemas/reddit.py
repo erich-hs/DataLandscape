@@ -260,3 +260,22 @@ TBLPROPERTIES (
     'write_compression'='snappy'
 )
 """
+
+def agg_reddit_daily_mentions_polarity_create_table_query(
+        target_table: str,
+        location: str
+) -> str:
+    return f"""CREATE TABLE IF NOT EXISTS {target_table} (
+    created_date DATE,
+    project STRING,
+    mentions_count INT,
+    avg_polarity DOUBLE
+)
+PARTITIONED BY (created_date)
+LOCATION 's3://{location}'
+TBLPROPERTIES (
+    'table_type'='ICEBERG',
+    'format'='parquet',
+    'write_compression'='snappy'
+)
+"""
