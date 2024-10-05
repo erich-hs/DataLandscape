@@ -49,8 +49,8 @@ SELECT
     COALESCE(COALESCE(COALESCE(t.project_version, l7.project_version), l30.project_version), l90.project_version) AS project_version,
     COALESCE(COALESCE(COALESCE(t.country_code, l7.country_code), l30.country_code), l90.country_code) AS country_code,
     COALESCE(t.download_count, 0) AS download_count,
-    l7.download_count AS download_count_last_7_days,
-    l30.download_count AS download_count_last_30_days,
+    COALESCE(l7.download_count, 0) AS download_count_last_7_days,
+    COALESCE(l30.download_count, 0) AS download_count_last_30_days,
     l90.download_count AS download_count_last_90_days
 FROM downloads_today t
     RIGHT JOIN downloads_last_7_days l7 ON t.project = l7.project AND t.project_version = l7.project_version AND t.country_code = l7.country_code
