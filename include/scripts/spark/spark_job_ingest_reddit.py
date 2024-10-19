@@ -6,6 +6,7 @@ from awsglue.utils import getResolvedOptions # type: ignore
 from awsglue.context import GlueContext # type: ignore
 from awsglue.job import Job # type: ignore
 from pyspark.sql import SparkSession # type: ignore
+from pyspark.sql.functions import lit # type: ignore
 from pyspark.sql.types import (  # type: ignore
     StructType,
     StructField,
@@ -112,7 +113,6 @@ submissions_schema = StructType([
     StructField("num_comments", IntegerType(), True),
     StructField("num_crossposts", IntegerType(), True),
     StructField("over_18", BooleanType(), True),
-    StructField("parent_whitelist_status", StringType(), True),
     StructField("permalink", StringType(), True),
     StructField("pinned", BooleanType(), True),
     StructField("pwls", IntegerType(), True),
@@ -138,7 +138,6 @@ submissions_schema = StructType([
     StructField("upvote_ratio", DoubleType(), True),
     StructField("url", StringType(), True),
     StructField("user_reports", ArrayType(StringType()), True),
-    StructField("whitelist_status", StringType(), True),
     StructField("wls", IntegerType(), True),
     StructField("_fetched_date", StringType(), True),
     StructField("_fetched_iso_utc", StringType(), True)
@@ -202,6 +201,11 @@ source_comments_df = spark \
     .json(comments_files)
 
 logging.info("Files successfully loaded from source")
+
+# Build legacy whitelist columns
+source_submissions_df = source_submissions_df \
+    .withColumn("parent_whitelist_status", lit(None)) \
+    .withColumn("whitelist_status", lit(None))
 
 # Build created_date column
 source_submissions_df = source_submissions_df \

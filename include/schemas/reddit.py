@@ -36,7 +36,7 @@ class RedditSubmission(BaseModel):
     num_comments: int
     num_crossposts: Union[int, None]
     over_18: Union[bool, None]
-    parent_whitelist_status: Union[str, None]
+    # parent_whitelist_status: Union[str, None]
     permalink: str
     pinned: bool
     pwls: int
@@ -62,7 +62,7 @@ class RedditSubmission(BaseModel):
     upvote_ratio: float
     url: str
     user_reports: Union[list, None]
-    whitelist_status: Union[str, None]
+    # whitelist_status: Union[str, None]
     wls: Union[int, None]
 
 class RedditComment(BaseModel):

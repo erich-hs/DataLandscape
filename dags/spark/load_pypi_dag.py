@@ -92,10 +92,6 @@ def load_pypi_dag():
         }
     )
 
-    # LatestOnlyOperator will skip the audit and publish tasks if the current DAG run is not the latest
-    # This will ensure that the audit and publish tasks are only executed once during backfills
-    is_latest_dag_run = LatestOnlyOperator(task_id="is_latest_dag_run")
-
     # Audit task
     audit_staging_table = PythonOperator(
         task_id="audit_staging_table",
@@ -189,7 +185,6 @@ def load_pypi_dag():
     (
         create_staging_table >>
         ingest_to_staging_table >>
-        is_latest_dag_run >>
         audit_staging_table >>
         create_production_table >>
         exchange_step >>
