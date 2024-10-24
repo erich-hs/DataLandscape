@@ -2,7 +2,7 @@ import time
 import json
 import boto3
 import logging
-import praw
+import praw # type: ignore
 from typing import List, Tuple, Union
 from datetime import datetime, UTC
 from pydantic import ValidationError
