@@ -1,3 +1,12 @@
+SUBREDDITS = [
+    "dataengineering",
+    "MachineLearning",
+    "datascience",
+    "analytics",
+    "LocalLLaMA",
+    "learnprogramming",
+]
+
 TRACKED_PROJECTS_JSON = [{'project_name': 'Delta Lake',
   'project_search_terms': ['Delta Lake', 'Delta Table', 'Delta Format'],
   'pypi': 'deltalake',

@@ -3,16 +3,9 @@ from airflow.models import Variable # type: ignore
 from airflow.operators.python_operator import PythonOperator # type: ignore
 from datetime import datetime, timedelta
 from include.scripts.scraping_job_reddit import fetch_reddit
+from include.reference import SUBREDDITS
 
 START_DATE = datetime(2024, 7, 25)
-SUBREDDITS = [
-    "dataengineering",
-    "MachineLearning",
-    "datascience",
-    "analytics",
-    "LocalLLaMA",
-    "learnprogramming",
-]
 
 # AWS Variables
 S3_BUCKET = Variable.get('AWS_S3_BUCKET')
