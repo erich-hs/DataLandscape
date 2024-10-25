@@ -62,7 +62,7 @@ def aggregate_pypi_dag():
 
     aggregate_and_insert_data = AthenaOperator(
         task_id="aggregate_and_insert_data",
-        depends_on_past=False,
+        depends_on_past=True,
         query=pypi_cumulative_aggregate_insert_query(target_table=PRODUCTION_TABLE, reference_date='{{ ds }}'),
         database="mad_dashboard_dl",
         output_location=f's3://{S3_BUCKET}/athena_results',
