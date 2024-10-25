@@ -268,6 +268,7 @@ def agg_reddit_daily_mentions_polarity_create_table_query(
     return f"""CREATE TABLE IF NOT EXISTS {target_table} (
     created_date DATE,
     project STRING,
+    polarity_category STRING,
     mentions_count INT,
     avg_polarity DOUBLE
 )
@@ -287,6 +288,7 @@ def agg_reddit_cumulative_mentions_polarity_create_table_query(
     return f"""CREATE TABLE IF NOT EXISTS {target_table} (
     reference_date DATE,
     project STRING,
+    polarity_category STRING,
     mentions_count INT,
     avg_polarity DOUBLE,
     mentions_count_last_7_days INT,

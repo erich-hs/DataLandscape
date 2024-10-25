@@ -104,7 +104,7 @@ def aggregate_reddit_dag():
 
     aggregate_reddit_cumulative = AthenaOperator(
         task_id="aggregate_reddit_cumulative",
-        depends_on_past=False,
+        depends_on_past=True,
         query=reddit_cumulative_aggregate_insert_query(
             target_table=CUMULATIVE_AGG_PRODUCTION_TABLE,
             reference_date='{{ ds }}'
