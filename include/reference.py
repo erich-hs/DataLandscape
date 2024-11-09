@@ -1,9 +1,9 @@
 POLARITY_CATEGORIES = {
-    'Very Negative': (-1.0, -0.6),
-    'Negative': (-0.599, -0.2),
-    'Neutral': (-0.199, 0.199),
-    'Positive': (0.2, 0.599),
-    'Very Positive': (0.6, 1.0)
+    'Very Negative': (1, -1.0, -0.6),
+    'Negative': (2, -0.599, -0.2),
+    'Neutral': (3, -0.199, 0.199),
+    'Positive': (4, 0.2, 0.599),
+    'Very Positive': (5, 0.6, 1.0)
 }
 
 SUBREDDITS = [

@@ -34,7 +34,7 @@ for project in TRACKED_PROJECTS_JSON:
 
 insert_dim_polartiy_categories_values = []
 for category in POLARITY_CATEGORIES:
-    insert_dim_polartiy_categories_values.append(f"('{category}', {POLARITY_CATEGORIES[category][0]}, {POLARITY_CATEGORIES[category][1]})")
+    insert_dim_polartiy_categories_values.append(f"('{category}', {POLARITY_CATEGORIES[category][0]}, {POLARITY_CATEGORIES[category][1]}, {POLARITY_CATEGORIES[category][2]})")
 
 @dag(
     "build_dim_tables",

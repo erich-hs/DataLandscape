@@ -38,6 +38,7 @@ def dim_polarity_categories_create_table_query(
 ) -> str:
     return f"""CREATE TABLE IF NOT EXISTS {target_table} (
     polarity_category STRING,
+    polarity_category_order INT,
     polarity_lower_bound DOUBLE,
     polarity_upper_bound DOUBLE
 )
