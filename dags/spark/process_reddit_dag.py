@@ -47,7 +47,7 @@ def process_reddit_dag():
     additional_python_modules=[
         'pydantic==2.9.2',
         'pydantic_core==2.23.4',
-        'openai==1.47.1'
+        'openai==1.55.3'
     ]
 
     local_logs_dir = None
