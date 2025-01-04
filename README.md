@@ -134,4 +134,4 @@ This section will track daily download metrics of the selected data tools and fr
 - Open discussions
 
 ## Tracked Projects
-See `TRACKED_PROJECTS_JSON` at [include/reference.py](#include/reference.py)
+See `TRACKED_PROJECTS_JSON` at [include/reference.py](include/reference.py)
