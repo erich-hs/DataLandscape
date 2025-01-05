@@ -65,7 +65,9 @@ def agg_pypi_cumulative_file_downloads_create_table_query(
     download_count INT,
     download_count_last_7_days INT,
     download_count_last_30_days INT,
-    download_count_last_90_days INT
+    download_count_last_90_days INT,
+    download_count_last_365_days INT,
+    download_count_since_first_record INT
 )
 COMMENT 'Aggregate table for PyPI file downloads with total download count per project, per project version, per country for today and for the last seven, last thirty and last ninety days.'
 PARTITIONED BY (reference_date)
