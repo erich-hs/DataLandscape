@@ -296,7 +296,11 @@ def agg_reddit_cumulative_mentions_polarity_create_table_query(
     mentions_count_last_30_days INT,
     avg_polarity_last_30_days DOUBLE,
     mentions_count_last_90_days INT,
-    avg_polarity_last_90_days DOUBLE
+    avg_polarity_last_90_days DOUBLE,
+    mentions_count_last_365_days INT,
+    avg_polarity_last_365_days DOUBLE,
+    mentions_count_since_first_record INT,
+    avg_polarity_since_first_record DOUBLE
 )
 PARTITIONED BY (reference_date)
 LOCATION 's3://{location}'
