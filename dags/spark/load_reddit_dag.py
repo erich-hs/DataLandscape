@@ -9,7 +9,7 @@ from datetime import datetime, timedelta
 from include.schemas.reddit import reddit_submissions_create_table_query, reddit_comments_create_table_query
 from include.utils.aws_glue import submit_glue_job
 
-START_DATE = datetime(2025, 1, 6)
+START_DATE = datetime(2025, 1, 5)
 
 SUBMISSIONS_TABLE = 'reddit_submissions'
 COMMENTS_TABLE = 'reddit_comments'

@@ -9,7 +9,7 @@ from include.utils.aws_glue import submit_glue_job
 from include.schemas.reddit import reddit_projects_mentions_create_table_query
 from include.reference import TRACKED_PROJECTS_JSON
 
-START_DATE = datetime(2025, 1, 6)
+START_DATE = datetime(2025, 1, 5)
 
 REDDIT_PROJECTS_MENTIONS_TABLE = 'reddit_projects_mentions'
 SUBMISSIONS_TABLE = 'reddit_submissions'

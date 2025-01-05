@@ -5,7 +5,7 @@ from datetime import datetime, timedelta
 from include.scripts.scraping_job_reddit import fetch_reddit
 from include.reference import SUBREDDITS
 
-START_DATE = datetime(2025, 1, 6)
+START_DATE = datetime(2025, 1, 5)
 
 # AWS Variables
 S3_BUCKET = Variable.get('AWS_S3_BUCKET')
