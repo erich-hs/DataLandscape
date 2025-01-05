@@ -12,7 +12,7 @@ from include.scripts.athena.reddit import (
     reddit_cumulative_aggregate_insert_query
 )
 
-START_DATE = datetime(2024, 6, 20)
+START_DATE = datetime(2025, 1, 6)
 
 DAILY_AGG_PRODUCTION_TABLE = 'agg_reddit_daily_mentions_polarity'
 CUMULATIVE_AGG_PRODUCTION_TABLE = 'agg_reddit_cumulative_mentions_polarity'
