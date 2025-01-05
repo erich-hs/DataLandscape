@@ -9,7 +9,7 @@ from include.schemas.dim_tables import (
 )
 from include.reference import SUBREDDITS, TRACKED_PROJECTS_JSON, POLARITY_CATEGORIES
 
-START_DATE = datetime(2025, 1, 6)
+START_DATE = datetime(2025, 1, 5)
 
 # AWS Variables
 S3_BUCKET = Variable.get('AWS_S3_BUCKET')
