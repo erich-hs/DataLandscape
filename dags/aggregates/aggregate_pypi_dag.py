@@ -6,7 +6,7 @@ from datetime import datetime, timedelta
 from include.schemas.pypi import agg_pypi_cumulative_file_downloads_create_table_query
 from include.scripts.athena.pypi import pypi_cumulative_aggregate_insert_query
 
-START_DATE = datetime(2025, 1, 5)
+START_DATE = datetime(2025, 1, 4)
 
 PRODUCTION_TABLE = 'agg_pypi_cumulative_file_downloads'
 
