@@ -98,13 +98,24 @@ def process_reddit_dag():
                 "local_logs_dir": local_logs_dir,
             }
         )
-    
+
+    optimize_and_vacuum_reddit_mentions_table = AthenaOperator(
+        task_id="optimize_and_vacuum_reddit_mentions_table",
+        depends_on_past=False,
+        query=f"OPTIMIZE {REDDIT_PROJECTS_MENTIONS_TABLE} REWRITE DATA USING BIN_PACK; VACUUM {REDDIT_PROJECTS_MENTIONS_TABLE};",
+        database="mad_dashboard_dl",
+        output_location=f's3://{S3_BUCKET}/athena_results',
+        sleep_time=10,
+        region_name=AWS_DEFAULT_REGION
+    )
+
     (
         [
             wait_for_reddit_table,
             create_reddit_projects_mentions_table
         ] >> 
-        process_reddit_mentions
+        process_reddit_mentions >>
+        optimize_and_vacuum_reddit_mentions_table
     )
 
 process_reddit_dag()

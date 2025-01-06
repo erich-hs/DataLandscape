@@ -115,12 +115,36 @@ def aggregate_reddit_dag():
         region_name=AWS_DEFAULT_REGION
     )
 
+    optimize_and_vacuum_daily_agg_table = AthenaOperator(
+        task_id="optimize_and_vacuum_daily_agg_table",
+        depends_on_past=False,
+        query=f"OPTIMIZE {DAILY_AGG_PRODUCTION_TABLE} REWRITE DATA USING BIN_PACK; VACUUM {DAILY_AGG_PRODUCTION_TABLE};",
+        database="mad_dashboard_dl",
+        output_location=f's3://{S3_BUCKET}/athena_results',
+        sleep_time=10,
+        region_name=AWS_DEFAULT_REGION
+    )
+
+    optimize_and_vacuum_cumulative_agg_table = AthenaOperator(
+        task_id="optimize_and_vacuum_cumulative_agg_table",
+        depends_on_past=False,
+        query=f"OPTIMIZE {CUMULATIVE_AGG_PRODUCTION_TABLE} REWRITE DATA USING BIN_PACK; VACUUM {CUMULATIVE_AGG_PRODUCTION_TABLE};",
+        database="mad_dashboard_dl",
+        output_location=f's3://{S3_BUCKET}/athena_results',
+        sleep_time=10,
+        region_name=AWS_DEFAULT_REGION
+    )
+
     (
         wait_for_reddit_table
         >> create_daily_agg_reddit_table
         >> truncate_daily_agg_partition
         >> aggregate_reddit_daily
         >> aggregate_reddit_cumulative
+        >> [
+            optimize_and_vacuum_daily_agg_table,
+            optimize_and_vacuum_cumulative_agg_table
+        ]
     )
     
     (
@@ -128,6 +152,10 @@ def aggregate_reddit_dag():
         >> create_cumulative_agg_reddit_table
         >> truncate_cumulative_agg_partition
         >> aggregate_reddit_cumulative
+        >> [
+            optimize_and_vacuum_daily_agg_table,
+            optimize_and_vacuum_cumulative_agg_table
+        ]
     )
 
 aggregate_reddit_dag()
