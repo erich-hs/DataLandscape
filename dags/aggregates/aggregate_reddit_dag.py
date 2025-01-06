@@ -138,15 +138,8 @@ def aggregate_reddit_dag():
     (
         wait_for_reddit_table >>
         [
-            [
-                create_daily_agg_reddit_table >>
-                truncate_daily_agg_partition >>
-                aggregate_reddit_daily
-            ],
-            [
-                create_cumulative_agg_reddit_table >>
-                truncate_cumulative_agg_partition
-            ]
+            create_daily_agg_reddit_table >> truncate_daily_agg_partition >> aggregate_reddit_daily,
+            create_cumulative_agg_reddit_table >> truncate_cumulative_agg_partition
         ] >>
         aggregate_reddit_cumulative >>
         [
@@ -154,5 +147,6 @@ def aggregate_reddit_dag():
             optimize_cumulative_agg_table
         ]
     )
+
 
 aggregate_reddit_dag()
