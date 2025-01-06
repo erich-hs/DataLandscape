@@ -121,20 +121,20 @@ def load_reddit_dag():
         }
     )
 
-    optimize_and_vacuum_submissions_table = AthenaOperator(
-        task_id="optimize_and_vacuum_submissions_table",
+    optimize_submissions_table = AthenaOperator(
+        task_id="optimize_submissions_table",
         depends_on_past=False,
-        query=f"OPTIMIZE {SUBMISSIONS_TABLE} REWRITE DATA USING BIN_PACK; VACUUM {SUBMISSIONS_TABLE};",
+        query=f"OPTIMIZE {SUBMISSIONS_TABLE} REWRITE DATA USING BIN_PACK",
         database="mad_dashboard_dl",
         output_location=f's3://{S3_BUCKET}/athena_results',
         sleep_time=10,
         region_name=AWS_DEFAULT_REGION
     )
 
-    optimize_and_vacuum_comments_table = AthenaOperator(
-        task_id="optimize_and_vacuum_comments_table",
+    optimize_comments_table = AthenaOperator(
+        task_id="optimize_comments_table",
         depends_on_past=False,
-        query=f"OPTIMIZE {COMMENTS_TABLE} REWRITE DATA USING BIN_PACK; VACUUM {COMMENTS_TABLE};",
+        query=f"OPTIMIZE {COMMENTS_TABLE} REWRITE DATA USING BIN_PACK",
         database="mad_dashboard_dl",
         output_location=f's3://{S3_BUCKET}/athena_results',
         sleep_time=10,
@@ -161,8 +161,8 @@ def load_reddit_dag():
         ] >>
         ingest_to_production_tables >>
         [
-            optimize_and_vacuum_submissions_table,
-            optimize_and_vacuum_comments_table
+            optimize_submissions_table,
+            optimize_comments_table
         ] >>
         archive_reddit_data
     )

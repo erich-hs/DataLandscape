@@ -70,10 +70,10 @@ def aggregate_pypi_dag():
         region_name=AWS_DEFAULT_REGION
     )
 
-    optimize_and_vacuum_production_table = AthenaOperator(
-        task_id="optimize_and_vacuum_production_table",
+    optimize_production_table = AthenaOperator(
+        task_id="optimize_production_table",
         depends_on_past=False,
-        query=f"OPTIMIZE {PRODUCTION_TABLE} REWRITE DATA USING BIN_PACK; VACUUM {PRODUCTION_TABLE};",
+        query=f"OPTIMIZE {PRODUCTION_TABLE} REWRITE DATA USING BIN_PACK",
         database="mad_dashboard_dl",
         output_location=f's3://{S3_BUCKET}/athena_results',
         sleep_time=10,
@@ -85,7 +85,7 @@ def aggregate_pypi_dag():
         >> create_cumulative_agg_pypi_table
         >> truncate_cumulative_agg_partition
         >> aggregate_and_insert_data
-        >> optimize_and_vacuum_production_table
+        >> optimize_production_table
     )
 
 aggregate_pypi_dag()

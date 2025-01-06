@@ -172,10 +172,10 @@ def load_pypi_dag():
         region_name=AWS_DEFAULT_REGION
     )
 
-    optimize_and_vacuum_production_table = AthenaOperator(
-        task_id="optimize_and_vacuum_production_table",
+    optimize_production_table = AthenaOperator(
+        task_id="optimize_production_table",
         depends_on_past=False,
-        query=f"OPTIMIZE {PRODUCTION_TABLE} REWRITE DATA USING BIN_PACK; VACUUM {PRODUCTION_TABLE};",
+        query=f"OPTIMIZE {PRODUCTION_TABLE} REWRITE DATA USING BIN_PACK",
         database="mad_dashboard_dl",
         output_location=f's3://{S3_BUCKET}/athena_results',
         sleep_time=10,
@@ -200,7 +200,7 @@ def load_pypi_dag():
         exchange_step >>
         [
             cleanup_step,
-            optimize_and_vacuum_production_table
+            optimize_production_table
         ]
     )
 
