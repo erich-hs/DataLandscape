@@ -118,7 +118,7 @@ def aggregate_reddit_dag():
     optimize_daily_agg_table = AthenaOperator(
         task_id="optimize_daily_agg_table",
         depends_on_past=False,
-        query=f"OPTIMIZE {DAILY_AGG_PRODUCTION_TABLE} REWRITE DATA USING BIN_PACK",
+        query=f"OPTIMIZE {DAILY_AGG_PRODUCTION_TABLE} REWRITE DATA USING BIN_PACK WHERE created_date = DATE('{{{{ ds }}}}')",
         database="mad_dashboard_dl",
         output_location=f's3://{S3_BUCKET}/athena_results',
         sleep_time=10,
