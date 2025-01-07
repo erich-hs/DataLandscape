@@ -102,7 +102,7 @@ def process_reddit_dag():
     optimize_reddit_mentions_table = AthenaOperator(
         task_id="optimize_reddit_mentions_table",
         depends_on_past=False,
-        query=f"OPTIMIZE {REDDIT_PROJECTS_MENTIONS_TABLE} REWRITE DATA USING BIN_PACK",
+        query=f"OPTIMIZE {REDDIT_PROJECTS_MENTIONS_TABLE} REWRITE DATA USING BIN_PACK WHERE created_date = DATE '{{{{ ds }}}}'",
         database="mad_dashboard_dl",
         output_location=f's3://{S3_BUCKET}/athena_results',
         sleep_time=10,
