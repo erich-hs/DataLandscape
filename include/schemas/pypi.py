@@ -1,5 +1,7 @@
+import pyarrow as pa
 from typing import Union, List
 
+#%% BigQuery PyPI File Downloads
 def pypi_file_downloads_query(
     project: Union[str, List[str]],
     start_date: str,
@@ -31,9 +33,10 @@ GROUP BY
     details.system.name
 """
 
+#%% Iceberg DDL Queries
 def pypi_file_downloads_create_table_query(
-        target_table: str,
-        location: str
+    target_table: str,
+    location: str
 ) -> str:
     return f"""CREATE TABLE IF NOT EXISTS {target_table} (
     download_date DATE,
@@ -54,8 +57,8 @@ TBLPROPERTIES (
 """
 
 def agg_pypi_cumulative_file_downloads_create_table_query(
-        target_table: str,
-        location: str
+    target_table: str,
+    location: str
 ) -> str:
     return f"""CREATE TABLE IF NOT EXISTS {target_table} (
     reference_date DATE,
@@ -78,3 +81,47 @@ TBLPROPERTIES (
     'write_compression'='snappy'
 )
 """
+
+#%% MotherDuck DDL Queries
+def agg_pypi_cumulative_file_downloads_create_motherduck_table_query(
+    target_table: str
+) -> str:
+    return f"""CREATE TABLE IF NOT EXISTS {target_table} (
+    reference_date DATE,
+    project STRING,
+    project_version STRING,
+    country_code STRING,
+    download_count INT,
+    download_count_last_7_days INT,
+    download_count_last_30_days INT,
+    download_count_last_90_days INT,
+    download_count_last_365_days INT,
+    download_count_since_first_record INT
+)"""
+
+def agg_pypi_daily_file_downloads_create_motherduck_table_query(
+    target_table: str
+) -> str:
+    return f"""CREATE TABLE IF NOT EXISTS {target_table} (
+    download_date DATE,
+    project STRING,
+    download_count INT
+)"""
+
+#%% PyArrow Schemas
+agg_pypi_cumulative_file_downloads_pyarrow_schema = pa.schema([
+    ('reference_date', pa.date32()),
+    ('project', pa.string()),
+    ('project_version', pa.string()),
+    ('country_code', pa.string()),
+    ('download_count', pa.int32()),
+    ('download_count_last_7_days', pa.int32()),
+    ('download_count_last_30_days', pa.int32()),
+    ('download_count_last_90_days', pa.int32())
+])
+
+agg_pypi_daily_file_downloads_pyarrow_schema = pa.schema([
+    ('download_date', pa.date32()),
+    ('project', pa.string()),
+    ('download_count', pa.int32())
+])
