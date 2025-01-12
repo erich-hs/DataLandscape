@@ -1,10 +1,10 @@
 import time
 import pyarrow as pa
 import pyarrow.compute as pc
-from botocore.client import Athena
+from botocore.client import BaseClient
 
 def submit_athena_query(
-    athena_client: Athena,
+    athena_client: BaseClient,
     query: str,
     database: str
 ) -> dict:
@@ -34,7 +34,7 @@ def submit_athena_query(
     return query_submit_response
 
 def get_athena_query_results(
-    athena_client: Athena,
+    athena_client: BaseClient,
     query_submit_response: dict,
     next_token: str | None = None
 ) -> dict:
