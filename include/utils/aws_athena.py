@@ -1,4 +1,5 @@
 import time
+import boto3
 import pyarrow as pa
 import pyarrow.compute as pc
 from botocore.client import BaseClient
@@ -122,9 +123,10 @@ def athena_query_to_pyarrow(
     pa_schema: pa.Schema
 ) -> pa.Table:
     result_tables = []
+    athena_client = boto3.client('athena')
 
-    query_submit_response = submit_athena_query(query, database)
-    query_results = get_athena_query_results(query_submit_response)
+    query_submit_response = submit_athena_query(athena_client, query, database)
+    query_results = get_athena_query_results(athena_client, query_submit_response)
 
     rows = query_results['ResultSet']['Rows'][1:]
     result_tables.append(query_rows_to_pyarrow(rows, pa_schema))
