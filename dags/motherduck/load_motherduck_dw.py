@@ -42,10 +42,10 @@ GROUP BY download_date, project
 }
 
 # AWS Variables
-S3_BUCKET = Variable.get('AWS_S3_BUCKET')
-AWS_ACCES_KEY_ID = Variable.get('AWS_ACCESS_KEY_ID')
-AWS_SECRET_ACCESS_KEY = Variable.get('AWS_SECRET_ACCESS_KEY')
-AWS_DEFAULT_REGION = Variable.get('AWS_DEFAULT_REGION')
+# S3_BUCKET = Variable.get('AWS_S3_BUCKET')
+# AWS_ACCES_KEY_ID = Variable.get('AWS_ACCESS_KEY_ID')
+# AWS_SECRET_ACCESS_KEY = Variable.get('AWS_SECRET_ACCESS_KEY')
+# AWS_DEFAULT_REGION = Variable.get('AWS_DEFAULT_REGION')
 
 # MotherDuck Variables
 MOTHERDUCK_TOKEN = Variable.get('MOTHERDUCK_TOKEN')
@@ -55,15 +55,18 @@ def run_load_table_to_motherduck_task(table: str) -> PythonOperator:
         task_id=f"load_{table}_to_motherduck",
         python_callable=load_iceberg_table_to_motherduck,
         op_kwargs={
-            "table": table,
+            "table_name": table,
+            "database": MOTHERDUCK_DATABASE,
             "database_schema": MOTHERDUCK_TABLES[table]["database_schema"],
             "athena_dql_query": MOTHERDUCK_TABLES[table]["athena_dql_query"],
             "motherduck_ddl_query": MOTHERDUCK_TABLES[table]["motherduck_ddl_query"],
+            "motherduck_preload_query": MOTHERDUCK_TABLES[table]["motherduck_preload_query"],
+            "motherduck_postload_query": MOTHERDUCK_TABLES[table]["motherduck_postload_query"],
             "pa_schema": MOTHERDUCK_TABLES[table]["pa_schema"],
-            "s3_bucket": S3_BUCKET,
-            "aws_access_key_id": AWS_ACCES_KEY_ID,
-            "aws_secret_access_key": AWS_SECRET_ACCESS_KEY,
-            "aws_default_region": AWS_DEFAULT_REGION,
+            # "s3_bucket": S3_BUCKET,
+            # "aws_access_key_id": AWS_ACCES_KEY_ID,
+            # "aws_secret_access_key": AWS_SECRET_ACCESS_KEY,
+            # "aws_default_region": AWS_DEFAULT_REGION,
             "motherduck_token": MOTHERDUCK_TOKEN
         },
         max_active_tis_per_dag=1
