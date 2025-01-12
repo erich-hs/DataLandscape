@@ -20,8 +20,8 @@ MOTHERDUCK_TABLES = {
         "database_schema": "pypi",
         "athena_dql_query": f"SELECT * FROM agg_pypi_cumulative_file_downloads WHERE reference_date = DATE('{{{{ ds }}}}')",
         "motherduck_ddl_query": agg_pypi_cumulative_file_downloads_create_motherduck_table_query(f"{MOTHERDUCK_DATABASE}.pypi.agg_pypi_cumulative_file_downloads"),
-        "motherduck_preload_query": None,
-        "motherduck_postload_query": f"DELETE FROM {MOTHERDUCK_DATABASE}.pypi.agg_pypi_cumulative_file_downloads WHERE reference_date < DATE('{{{{ macros.ds_add(ds, -{MOTHERDUCK_RETENTION_DAYS}) }}}}')",
+        "motherduck_preload_query": f"DELETE FROM {MOTHERDUCK_DATABASE}.pypi.agg_pypi_cumulative_file_downloads WHERE reference_date = '{{{{ ds }}}}'",
+        "motherduck_postload_query": f"DELETE FROM {MOTHERDUCK_DATABASE}.pypi.agg_pypi_cumulative_file_downloads WHERE reference_date < '{{{{ macros.ds_add(ds, -{MOTHERDUCK_RETENTION_DAYS}) }}}}'",
         "pa_schema": agg_pypi_cumulative_file_downloads_pyarrow_schema
     },
     "agg_pypi_daily_file_downloads": {
