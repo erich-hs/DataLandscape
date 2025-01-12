@@ -85,8 +85,8 @@ def run_load_table_to_motherduck_task(table: str) -> PythonOperator:
 )
 def load_motherduck_dw_dag():
     task_list = []
-    task_list.append(run_load_table_to_motherduck_task(MOTHERDUCK_TABLES.keys()[0]))
-    for table in MOTHERDUCK_TABLES.keys()[1:]:
+    task_list.append(run_load_table_to_motherduck_task(list(MOTHERDUCK_TABLES.keys())[0]))
+    for table in list(MOTHERDUCK_TABLES.keys())[1:]:
         load_table_to_motherduck_task = run_load_table_to_motherduck_task(table)
         load_table_to_motherduck_task.set_upstream(task_list[-1])
         task_list.append(load_table_to_motherduck_task)
