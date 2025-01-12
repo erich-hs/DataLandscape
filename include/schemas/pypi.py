@@ -117,7 +117,9 @@ agg_pypi_cumulative_file_downloads_pyarrow_schema = pa.schema([
     ('download_count', pa.int32()),
     ('download_count_last_7_days', pa.int32()),
     ('download_count_last_30_days', pa.int32()),
-    ('download_count_last_90_days', pa.int32())
+    ('download_count_last_90_days', pa.int32()),
+    ('download_count_last_365_days', pa.int32()),
+    ('download_count_since_first_record', pa.int32())
 ])
 
 agg_pypi_daily_file_downloads_pyarrow_schema = pa.schema([
