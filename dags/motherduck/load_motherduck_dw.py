@@ -18,10 +18,10 @@ MOTHERDUCK_RETENTION_DAYS = 30
 MOTHERDUCK_TABLES = {
     "agg_pypi_cumulative_file_downloads": {
         "database_schema": "pypi",
-        "athena_dql_query": "SELECT * FROM agg_pypi_cumulative_file_downloads WHERE reference_date = DATE('{{ ds }}')",
+        "athena_dql_query": f"SELECT * FROM agg_pypi_cumulative_file_downloads WHERE reference_date = DATE('{{{{ ds }}}}')",
         "motherduck_ddl_query": agg_pypi_cumulative_file_downloads_create_motherduck_table_query(f"{MOTHERDUCK_DATABASE}.pypi.agg_pypi_cumulative_file_downloads"),
         "motherduck_preload_query": None,
-        "motherduck_postload_query": f"DELETE FROM {MOTHERDUCK_DATABASE}.pypi.agg_pypi_cumulative_file_downloads WHERE reference_date < DATE('{{ macros.ds_add(ds, -{MOTHERDUCK_RETENTION_DAYS}) }}')",
+        "motherduck_postload_query": f"DELETE FROM {MOTHERDUCK_DATABASE}.pypi.agg_pypi_cumulative_file_downloads WHERE reference_date < DATE('{{{{ macros.ds_add(ds, -{MOTHERDUCK_RETENTION_DAYS}) }}}}')",
         "pa_schema": agg_pypi_cumulative_file_downloads_pyarrow_schema
     },
     "agg_pypi_daily_file_downloads": {
@@ -41,14 +41,9 @@ GROUP BY download_date, project
     }
 }
 
-# AWS Variables
-# S3_BUCKET = Variable.get('AWS_S3_BUCKET')
-# AWS_ACCES_KEY_ID = Variable.get('AWS_ACCESS_KEY_ID')
-# AWS_SECRET_ACCESS_KEY = Variable.get('AWS_SECRET_ACCESS_KEY')
-# AWS_DEFAULT_REGION = Variable.get('AWS_DEFAULT_REGION')
-
 # MotherDuck Variables
 MOTHERDUCK_TOKEN = Variable.get('MOTHERDUCK_TOKEN')
+
 
 def run_load_table_to_motherduck_task(table: str) -> PythonOperator:
     return PythonOperator(
@@ -63,10 +58,6 @@ def run_load_table_to_motherduck_task(table: str) -> PythonOperator:
             "motherduck_preload_query": MOTHERDUCK_TABLES[table]["motherduck_preload_query"],
             "motherduck_postload_query": MOTHERDUCK_TABLES[table]["motherduck_postload_query"],
             "pa_schema": MOTHERDUCK_TABLES[table]["pa_schema"],
-            # "s3_bucket": S3_BUCKET,
-            # "aws_access_key_id": AWS_ACCES_KEY_ID,
-            # "aws_secret_access_key": AWS_SECRET_ACCESS_KEY,
-            # "aws_default_region": AWS_DEFAULT_REGION,
             "motherduck_token": MOTHERDUCK_TOKEN
         },
         max_active_tis_per_dag=1
