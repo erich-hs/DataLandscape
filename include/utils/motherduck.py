@@ -39,9 +39,12 @@ def load_iceberg_table_to_motherduck(
 
     # Load PyArrow table into MotherDuck Data Warehouse
     if motherduck_preload_query:
+        print(f"Executing MotherDuck pre-load query...:\n{motherduck_preload_query}")
         conn.sql(motherduck_preload_query)
+    print(f"Loading table {table_name} into MotherDuck Data Warehouse...")
     conn.sql(f"INSERT INTO {motherduck_database}{f'.{motherduck_database_schema}.' if motherduck_database_schema else '.'}{table_name} (SELECT * FROM pa_table)")
     if motherduck_postload_query:
+        print(f"Executing MotherDuck post-load query...:\n{motherduck_postload_query}")
         conn.sql(motherduck_postload_query)
 
     conn.close()
