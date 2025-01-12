@@ -26,6 +26,7 @@ def load_iceberg_table_to_motherduck(
         conn.sql(f"CREATE SCHEMA IF NOT EXISTS {database}.{database_schema}")
 
     # Serialize PyArrow table in memory from Athena
+    print(f"Submitting Athena query...\n{athena_dql_query}")
     pa_table = athena_query_to_pyarrow(
         query=athena_dql_query,
         database=database,
