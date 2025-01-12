@@ -1,5 +1,5 @@
 import duckdb
-from aws_athena import athena_query_to_pyarrow
+from .aws_athena import athena_query_to_pyarrow
 
 
 def load_iceberg_table_to_motherduck(
