@@ -51,8 +51,9 @@ def run_load_table_to_motherduck_task(table: str) -> PythonOperator:
         python_callable=load_iceberg_table_to_motherduck,
         op_kwargs={
             "table_name": table,
-            "database": MOTHERDUCK_DATABASE,
-            "database_schema": MOTHERDUCK_TABLES[table]["database_schema"],
+            "athena_database": "mad_dashboard_dl",
+            "motherduck_database": MOTHERDUCK_DATABASE,
+            "motherduck_database_schema": MOTHERDUCK_TABLES[table]["database_schema"],
             "athena_dql_query": MOTHERDUCK_TABLES[table]["athena_dql_query"],
             "motherduck_ddl_query": MOTHERDUCK_TABLES[table]["motherduck_ddl_query"],
             "motherduck_preload_query": MOTHERDUCK_TABLES[table]["motherduck_preload_query"],
