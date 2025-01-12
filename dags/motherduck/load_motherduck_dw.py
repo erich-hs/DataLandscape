@@ -31,7 +31,7 @@ MOTHERDUCK_TABLES = {
     project,
     SUM(download_count) AS download_count
 FROM pypi_file_downloads
-WHERE download_date <= DATE('{{ ds }}')
+WHERE download_date <= DATE('{{{{ ds }}}}')
 GROUP BY download_date, project
 """,
         "motherduck_ddl_query": agg_pypi_daily_file_downloads_create_motherduck_table_query(f"{MOTHERDUCK_DATABASE}.pypi.agg_pypi_daily_file_downloads"),
