@@ -9,7 +9,7 @@ def submit_athena_query(
     query: str,
     database: str
 ) -> dict:
-    print(f"Submitting query:\n{query}")
+    print(f"Submitting Athena query...:\n{query}")
     query_submit_response = athena_client.start_query_execution(
         QueryString=query,
         QueryExecutionContext={
@@ -125,11 +125,11 @@ def athena_query_to_pyarrow(
     result_tables = []
     athena_client = boto3.client('athena')
 
-    query_submit_response = submit_athena_query(athena_client, query, database)
-    query_results = get_athena_query_results(athena_client, query_submit_response)
+    query_submit_response = submit_athena_query(athena_client=athena_client, query=query, database=database)
+    query_results = get_athena_query_results(athena_client=athena_client, query_submit_response=query_submit_response)
 
     rows = query_results['ResultSet']['Rows'][1:]
-    result_tables.append(query_rows_to_pyarrow(rows, pa_schema))
+    result_tables.append(query_rows_to_pyarrow(rows=rows, pa_schema=pa_schema))
     
     row_count = len(rows)
     print(f"Appended {row_count} rows to result table")
@@ -137,9 +137,9 @@ def athena_query_to_pyarrow(
     while 'NextToken' in query_results:
         time.sleep(0.1)
         print("Paginating query results...")
-        query_results = get_athena_query_results(query_submit_response, query_results['NextToken'])
+        query_results = get_athena_query_results(athena_client=athena_client, query_submit_response=query_submit_response, next_token=query_results['NextToken'])
         rows = query_results['ResultSet']['Rows']
-        result_tables.append(query_rows_to_pyarrow(rows, pa_schema))
+        result_tables.append(query_rows_to_pyarrow(rows=rows, pa_schema=pa_schema))
         
         row_count += len(rows)
         print(f"Appended {len(rows)} rows to result table. Total rows: {row_count}")
