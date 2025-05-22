@@ -9,6 +9,10 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
 
+    env:
+      LAMBDA_ROOT: scripts/lambda
+      LAMBDA_CONFIG: lambdas.json
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
@@ -20,11 +24,29 @@ jobs:
           aws-secret-access-key: ${{ secrets.DEV__LAMBDA_UPDATER__AWS_SECRET_ACCESS_KEY }}
           aws-region: us-west-2
 
-      - name: Zip Lambda function
-        run: |
-          cd scripts/lambda
-          zip -r ingest_reddit.zip ingest_reddit.py
+      - name: Install jq (JSON processor)
+        run: sudo apt-get install -y jq
 
-      - name: Upload to AWS Lambda
+      - name: Deploy all Lambda functions
         run: |
-          aws lambda update-function-code --function-name dl-dev-ingest-reddit-01 --zip-file fileb://scripts/lambda/ingest_reddit.zip --publish
+          CONFIG_FILE=$LAMBDA_ROOT/$LAMBDA_CONFIG
+          for row in $(cat $CONFIG_FILE | jq -c '.[]'); do
+            NAME=$(echo $row | jq -r '.name')
+            FILE=$(echo $row | jq -r '.file')
+
+            # Zip the Lambda function
+            cd $LAMBDA_ROOT
+            zip -r lambda_function.zip $FILE
+            cd -
+
+            # Upload the Lambda function
+            aws lambda update-function-code \
+              --function-name $NAME \
+              --zip-file fileb://$LAMBDA_ROOT/lambda_function.zip \
+              --publish
+            
+            # Update the Lambda configuration
+            aws lambda update-function-configuration \
+              --function-name $NAME \
+              --handler $HANDLER
+          done

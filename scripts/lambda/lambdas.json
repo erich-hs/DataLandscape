@@ -1,0 +1,7 @@
+[
+    {
+        "name": "dl-dev-ingest-reddit-01",
+        "file": "ingest_reddit.py",
+        "handler": "ingest_reddit.lambda_handler"
+    }
+]
