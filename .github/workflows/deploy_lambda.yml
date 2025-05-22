@@ -41,13 +41,26 @@ jobs:
             cd -
 
             # Upload the Lambda function
+            echo "Updating function code for $NAME..."
             aws lambda update-function-code \
               --function-name $NAME \
               --zip-file fileb://$LAMBDA_ROOT/lambda_function.zip \
               --publish
             
+            # Wait for the function code update to complete
+            echo "Waiting for function code update to complete for $NAME..."
+            aws lambda wait function-updated \
+              --function-name "$NAME"
+
             # Update the Lambda configuration
+            echo "Updating function configuration for $NAME (handler: $HANDLER)..."
             aws lambda update-function-configuration \
               --function-name $NAME \
               --handler $HANDLER
+            
+            # Clean up the zip file for the current function
+            rm "$ZIP_FILE_PATH"
+            
+            echo "Successfully processed $NAME."
+            echo "---"
           done
