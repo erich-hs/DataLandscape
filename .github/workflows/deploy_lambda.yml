@@ -4,6 +4,8 @@ on:
   push:
     branches:
       - data_landscape_migration
+    paths:
+      - 'scripts/lambda/**'
 
 jobs:
   deploy:
