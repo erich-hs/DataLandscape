@@ -1,0 +1,30 @@
+name: Deploy Lambda Function
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Set up AWS CLI
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.DEV__LAMBDA_UPDATER__AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.DEV__LAMBDA_UPDATER__AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-west-2
+
+      - name: Zip Lambda function
+        run: |
+          cd scripts/lambda
+          zip -r ingest_reddit.zip ingest_reddit.py
+
+      - name: Upload to AWS Lambda
+        run: |
+          aws lambda update-function-code --function-name your_lambda_function_name --zip-file fileb://scripts/lambda/ingest_reddit.zip
