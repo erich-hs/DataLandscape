@@ -33,6 +33,7 @@ jobs:
           for row in $(cat $CONFIG_FILE | jq -c '.[]'); do
             NAME=$(echo $row | jq -r '.name')
             FILE=$(echo $row | jq -r '.file')
+            HANDLER=$(echo $row | jq -r '.handler')
 
             # Zip the Lambda function
             cd $LAMBDA_ROOT
