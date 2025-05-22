@@ -3,7 +3,7 @@ name: Deploy Lambda Function
 on:
   push:
     branches:
-      - main
+      - data_landscape_migration
 
 jobs:
   deploy:
@@ -27,4 +27,4 @@ jobs:
 
       - name: Upload to AWS Lambda
         run: |
-          aws lambda update-function-code --function-name your_lambda_function_name --zip-file fileb://scripts/lambda/ingest_reddit.zip
+          aws lambda update-function-code --function-name dl-dev-ingest-reddit-01 --zip-file fileb://scripts/lambda/ingest_reddit.zip --publish
