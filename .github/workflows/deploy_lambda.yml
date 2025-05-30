@@ -1,68 +1,188 @@
-name: Deploy Lambda Function
+name: Deploy Lambda Functions
 
 on:
   push:
     branches:
-      - data_landscape_migration
+      - data_landscape_migration # Or your main development branch
     paths:
-      - 'scripts/lambda/**'
+      - 'lambdas/**'
+      - '.github/workflows/deploy_lambda.yml'
 
 jobs:
-  deploy:
+  test:
     runs-on: ubuntu-latest
-
     env:
-      LAMBDA_ROOT: scripts/lambda
-      LAMBDA_CONFIG: lambdas.json
+      LAMBDA_ROOT: lambdas
+      LAMBDA_CONFIG_FILE: lambdas.json
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
-      - name: Set up AWS CLI
-        uses: aws-actions/configure-aws-credentials@v1
+      - name: Set up Python
+        uses: actions/setup-python@v4
         with:
-          aws-access-key-id: ${{ secrets.DEV__LAMBDA_UPDATER__AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.DEV__LAMBDA_UPDATER__AWS_SECRET_ACCESS_KEY }}
-          aws-region: us-west-2
+          python-version: '3.10' # Match your Lambda runtime
 
       - name: Install jq (JSON processor)
         run: sudo apt-get install -y jq
 
+      - name: Run tests for all Lambda functions
+        run: |
+          CONFIG_FILE_PATH="$LAMBDA_ROOT/$LAMBDA_CONFIG_FILE"
+          if [ ! -f "$CONFIG_FILE_PATH" ]; then
+            echo "Lambda config file not found at $CONFIG_FILE_PATH"
+            exit 1
+          fi
+          echo "Processing Lambda functions from $CONFIG_FILE_PATH"
+
+          for row in $(cat "$CONFIG_FILE_PATH" | jq -c '.[]'); do
+            SOURCE_DIR=$(echo $row | jq -r '.source_dir')
+            FUNCTION_PATH="$LAMBDA_ROOT/$SOURCE_DIR"
+            TEST_DIR="$FUNCTION_PATH/tests"
+            REQ_TEST_FILE="$FUNCTION_PATH/requirements-test.txt"
+
+            echo "-----"
+            echo "Processing function in $FUNCTION_PATH"
+
+            if [ -d "$TEST_DIR" ]; then
+              echo "Test directory found. Running tests..."
+              if [ -f "$REQ_TEST_FILE" ]; then
+                echo "Installing test requirements from $REQ_TEST_FILE..."
+                python -m pip install -r "$REQ_TEST_FILE"
+              else 
+                echo "No requirements-test.txt found in $FUNCTION_PATH, skipping pip install for tests."
+              fi
+              # It is crucial to run pytest from the directory containing the tests
+              # and ensure the code being tested is in PYTHONPATH or discoverable.
+              # Here, we run pytest from within the specific lambda's directory.
+              echo "Running pytest in $FUNCTION_PATH ..."
+              cd "$FUNCTION_PATH"
+              # Add current dir to pythonpath to allow imports of lambda code
+              PYTHONPATH=. pytest tests/
+              if [ $? -ne 0 ]; then
+                echo "Tests failed for function in $SOURCE_DIR"
+                exit 1
+              fi
+              cd -
+              echo "Tests passed for function in $SOURCE_DIR."
+            else
+              echo "No test directory found in $FUNCTION_PATH, skipping tests."
+            fi
+          done
+          echo "All tests passed for all Lambda functions with tests."
+
+  deploy:
+    runs-on: ubuntu-latest
+    needs: test # Ensure tests pass before deploying
+    if: github.ref == 'refs/heads/data_landscape_migration' # Only deploy from specific branch
+
+    env:
+      LAMBDA_ROOT: lambdas
+      LAMBDA_CONFIG_FILE: lambdas.json
+      AWS_REGION: us-west-2 # Or your desired region
+      DEV_LAMBDA_NAME_PREFIX: ${{ secrets.DEV__LAMBDA_NAME_PREFIX }} # e.g., dl-dev-
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up AWS CLI
+        uses: aws-actions/configure-aws-credentials@v2 # Updated version
+        with:
+          aws-access-key-id: ${{ secrets.DEV__LAMBDA_UPDATER__AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.DEV__LAMBDA_UPDATER__AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Install jq and zip
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y jq zip
+      
       - name: Deploy all Lambda functions
         run: |
-          CONFIG_FILE=$LAMBDA_ROOT/$LAMBDA_CONFIG
-          for row in $(cat $CONFIG_FILE | jq -c '.[]'); do
-            NAME=$(echo $row | jq -r '.name')
-            FILE=$(echo $row | jq -r '.file')
-            HANDLER=$(echo $row | jq -r '.handler')
+          if [ -z "$DEV_LAMBDA_NAME_PREFIX" ]; then
+            echo "Error: DEV__LAMBDA_NAME_PREFIX secret is not set."
+            exit 1
+          fi
 
-            # Zip the Lambda function
-            cd $LAMBDA_ROOT
-            zip -r lambda_function.zip $FILE
+          CONFIG_FILE_PATH="$LAMBDA_ROOT/$LAMBDA_CONFIG_FILE"
+          if [ ! -f "$CONFIG_FILE_PATH" ]; then
+            echo "Lambda config file not found at $CONFIG_FILE_PATH"
+            exit 1
+          fi
+          echo "Processing Lambda functions from $CONFIG_FILE_PATH for deployment..."
+
+          for row in $(cat "$CONFIG_FILE_PATH" | jq -c '.[]'); do
+            NAME_SUFFIX=$(echo $row | jq -r '.name_suffix')
+            SOURCE_DIR=$(echo $row | jq -r '.source_dir')
+            HANDLER_FILE=$(echo $row | jq -r '.handler_file') # e.g., scrapping_job_reddit.py
+            HANDLER_FUNCTION=$(echo $row | jq -r '.handler_function') # e.g., scrapping_job_reddit.lambda_handler
+            
+            FULL_FUNCTION_NAME="$DEV_LAMBDA_NAME_PREFIX$NAME_SUFFIX"
+            FUNCTION_PATH="$LAMBDA_ROOT/$SOURCE_DIR"
+            ZIP_FILE_NAME="lambda_function_payload.zip"
+            PACKAGE_DIR="package"
+
+            echo "-----"
+            echo "Processing $FULL_FUNCTION_NAME from source: $FUNCTION_PATH"
+
+            # Create package directory
+            rm -rf "$FUNCTION_PATH/$PACKAGE_DIR"
+            mkdir -p "$FUNCTION_PATH/$PACKAGE_DIR"
+
+            # Install dependencies to package directory if requirements.txt exists
+            if [ -f "$FUNCTION_PATH/requirements.txt" ]; then
+              echo "Installing dependencies from $FUNCTION_PATH/requirements.txt into $FUNCTION_PATH/$PACKAGE_DIR"
+              python -m pip install --upgrade pip
+              python -m pip install -r "$FUNCTION_PATH/requirements.txt" -t "$FUNCTION_PATH/$PACKAGE_DIR"
+            else
+              echo "No requirements.txt found in $FUNCTION_PATH, skipping dependency installation."
+            fi
+
+            # Copy handler file to package directory
+            if [ -f "$FUNCTION_PATH/$HANDLER_FILE" ]; then
+                cp "$FUNCTION_PATH/$HANDLER_FILE" "$FUNCTION_PATH/$PACKAGE_DIR/"
+            else
+                echo "Handler file $HANDLER_FILE not found in $FUNCTION_PATH!"
+                exit 1
+            fi
+            
+            # If there are other Python modules in the source_dir (not the handler file itself)
+            # that need to be included, copy them as well. 
+            # This example assumes the handler_file is at the root of source_dir or dependencies handle imports.
+            # For more complex structures, you might need to copy more items into $PACKAGE_DIR
+            # For example, if you have a utils.py in $FUNCTION_PATH:
+            # if [ -f "$FUNCTION_PATH/utils.py" ]; then cp "$FUNCTION_PATH/utils.py" "$FUNCTION_PATH/$PACKAGE_DIR/"; fi
+
+            echo "Creating zip file $ZIP_FILE_NAME in $FUNCTION_PATH ..."
+            cd "$FUNCTION_PATH/$PACKAGE_DIR"
+            zip -r "../$ZIP_FILE_NAME" . # Zip contents of package dir
+            cd -
+            cd "$FUNCTION_PATH"
+            # If handler file is not the only .py file and there are other modules at the root of FUNCTION_PATH (e.g. shared modules within the lambda package)
+            # zip -g "$ZIP_FILE_NAME" *.py # Add other .py files from the root of the lambda source dir
             cd -
 
-            # Upload the Lambda function
-            echo "Updating function code for $NAME..."
+            echo "Updating function code for $FULL_FUNCTION_NAME..."
             aws lambda update-function-code \
-              --function-name $NAME \
-              --zip-file fileb://$LAMBDA_ROOT/lambda_function.zip \
+              --function-name "$FULL_FUNCTION_NAME" \
+              --zip-file "fileb://$FUNCTION_PATH/$ZIP_FILE_NAME" \
               --publish
             
-            # Wait for the function code update to complete
-            echo "Waiting for function code update to complete for $NAME..."
+            echo "Waiting for function code update to complete for $FULL_FUNCTION_NAME..."
             aws lambda wait function-updated \
-              --function-name "$NAME"
+              --function-name "$FULL_FUNCTION_NAME"
 
-            # Update the Lambda configuration
-            echo "Updating function configuration for $NAME (handler: $HANDLER)..."
+            echo "Updating function configuration for $FULL_FUNCTION_NAME (handler: $HANDLER_FUNCTION)..."
             aws lambda update-function-configuration \
-              --function-name $NAME \
-              --handler $HANDLER
+              --function-name "$FULL_FUNCTION_NAME" \
+              --handler "$HANDLER_FUNCTION" # Handler is relative to the root of the zip, e.g. scrapping_job_reddit.lambda_handler
             
-            # Clean up the zip file for the current function
-            rm "$ZIP_FILE_PATH"
+            # Clean up the zip file and package dir for the current function
+            rm "$FUNCTION_PATH/$ZIP_FILE_NAME"
+            rm -rf "$FUNCTION_PATH/$PACKAGE_DIR"
             
-            echo "Successfully processed $NAME."
-            echo "---"
+            echo "Successfully deployed $FULL_FUNCTION_NAME."
           done
+          echo "All Lambda functions processed."
