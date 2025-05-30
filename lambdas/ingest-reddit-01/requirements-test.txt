@@ -1,4 +1,0 @@
-pytest==8.3.2
-moto[s3]==5.1.1
-responses==0.25.2 # For mocking PRAW HTTP requests if needed directly, or for other HTTP calls
-freezegun==1.5.1 # For controlling time in tests 

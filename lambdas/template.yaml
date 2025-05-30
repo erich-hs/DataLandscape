@@ -1,0 +1,15 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  SAM template for DataLandscape lambdas
+
+Resources:
+  IngestRedditFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: ingest-reddit-01
+      CodeUri: ingest_reddit/
+      Handler: ingest_reddit.lambda_handler
+      Runtime: python3.13
+      Description: Ingests data from Reddit API for specified subreddits and stores it in S3.
+      Timeout: 300

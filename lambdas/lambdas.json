@@ -1,9 +1,0 @@
-[
-    {
-        "name_suffix": "ingest-reddit-01",
-        "source_dir": "ingest-reddit-01",
-        "handler_file": "scrapping_job_reddit.py",
-        "handler_function": "scrapping_job_reddit.lambda_handler",
-        "description": "Ingests data from Reddit API for specified subreddits and stores it in S3."
-    }
-]
