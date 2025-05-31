@@ -64,6 +64,7 @@ jobs:
           RESOURCE_PREFIX: ${{ secrets.DEV__AWS_RESOURCE_BASE }}
           S3_BUCKET: ${{ secrets.DEV__LAMBDA_ARTIFACTS_S3_BUCKET }}
           RUN_ID: ${{ github.run_id }}
+        working-directory: ./lambdas
         run: |
           # Query the YAML file for all resources of type AWS::Serverless::Function
           functions=$(yq '(.Resources | to_entries | .[] | select(.value.Type == "AWS::Serverless::Function")).key' template.yaml)
@@ -116,6 +117,7 @@ jobs:
           echo "All functions have been packaged and uploaded."
 
       - name: Upload Lambda template to S3
+        working-directory: ./lambdas
         run: |
           aws s3 cp template.yaml "s3://${S3_BUCKET}/${RUN_ID}/template.yaml"
           echo "Lambda template uploaded to S3."
