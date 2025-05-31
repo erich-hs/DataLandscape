@@ -3,11 +3,16 @@ Transform: AWS::Serverless-2016-10-31
 Description: >
   SAM template for DataLandscape lambdas
 
+Parameters:
+      IngestRedditFunctionName:
+        Type: String
+        Description: The name of the Ingest Reddit Lambda function.
+
 Resources:
   IngestRedditFunction:
     Type: AWS::Serverless::Function
     Properties:
-      FunctionName: ingest-reddit-01
+      FunctionName: !Ref IngestRedditFunctionName
       CodeUri: ingest_reddit/
       Handler: ingest_reddit.lambda_handler
       Runtime: python3.13
