@@ -450,7 +450,7 @@ def lambda_handler(payload, context):
                 )
 
             if i < len(tasks) - 1:
-                logger.info(f"Sleeping for 60 seconds before next task...")
+                logger.info("Sleeping for 60 seconds before next task...")
                 time.sleep(60)
 
         logger.info(

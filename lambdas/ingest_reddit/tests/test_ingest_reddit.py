@@ -1,17 +1,13 @@
-import pytest  # type: ignore
-from unittest.mock import MagicMock, patch, call
-import logging
 import json
+import logging
+from datetime import datetime, UTC
+from unittest.mock import MagicMock, patch
 
+import pytest  # type: ignore
+import praw  # type: ignore
+from botocore.exceptions import NoCredentialsError, ClientError  # type: ignore
+from pydantic import ValidationError
 
-# Add the mock_logger fixture here
-@pytest.fixture
-def mock_logger():
-    """Fixture to provide a MagicMock for logging.Logger."""
-    return MagicMock(spec=logging.Logger)
-
-
-# Assuming ingest_reddit.py is in the parent directory
 from ..ingest_reddit import (
     put_to_s3,
     RedditSubmission,
@@ -21,10 +17,14 @@ from ..ingest_reddit import (
     fetch_reddit,
     lambda_handler,
 )
-from botocore.exceptions import NoCredentialsError, ClientError  # type: ignore
-from pydantic import ValidationError
-import praw  # type: ignore
-from datetime import datetime, UTC
+
+
+# Add the mock_logger fixture here
+@pytest.fixture
+def mock_logger():
+    """Fixture to provide a MagicMock for logging.Logger."""
+    return MagicMock(spec=logging.Logger)
+
 
 # Configure a basic logger for tests if needed, or mock it
 logging.basicConfig(level=logging.INFO)
@@ -745,7 +745,7 @@ def test_lambda_handler_success_single_task(mocker, mock_logger):
     )
 
     mock_sleep.assert_not_called()
-    mock_logger.info.assert_any_call(f"Processing task 1/1 for subreddit: python")
+    mock_logger.info.assert_any_call("Processing task 1/1 for subreddit: python")
     mock_logger.info.assert_any_call(
         f"Lambda function {mock_context.function_name} version {mock_context.function_version} completed successfully."
     )
