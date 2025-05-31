@@ -1,12 +1,13 @@
 import time
 import json
-import boto3 # type: ignore
-from botocore.exceptions import NoCredentialsError, ClientError # type: ignore
-import logging # type: ignore
-import praw # type: ignore
+import boto3  # type: ignore
+from botocore.exceptions import NoCredentialsError, ClientError  # type: ignore
+import logging  # type: ignore
+import praw  # type: ignore
 from typing import List, Tuple, Union, Optional, Dict, Any
 from datetime import datetime, UTC
 from pydantic import BaseModel, ValidationError
+
 
 # Pydantic Schemas
 class RedditSubmission(BaseModel):
@@ -71,6 +72,7 @@ class RedditSubmission(BaseModel):
     user_reports: Union[list, None]
     wls: Union[int, None]
 
+
 class RedditComment(BaseModel):
     archived: bool
     author_fullname: Optional[Union[str, None]] = None
@@ -108,12 +110,13 @@ class RedditComment(BaseModel):
     treatment_tags: Union[list, None]
     ups: int
 
+
 def put_to_s3(data, s3_bucket, s3_file, s3_client, logger):
     try:
         # A put_object will overwrite the file if it already exists
         s3_client.put_object(Bucket=s3_bucket, Key=s3_file, Body=data)
         logger.info(f"Write to S3 successful: {s3_bucket}/{s3_file}")
-        return f's3://{s3_bucket}/{s3_file}'
+        return f"s3://{s3_bucket}/{s3_file}"
     except NoCredentialsError as e:
         logger.error("Credentials not available")
         raise e
@@ -121,11 +124,12 @@ def put_to_s3(data, s3_bucket, s3_file, s3_client, logger):
         logger.error(f"Client error: {e}")
         raise e
 
+
 def fetch_subreddit_newest_submissions(
     reddit: praw.reddit.Reddit,
     subreddit_name: str,
     logger: logging.Logger,
-    submission_limit: int=100,
+    submission_limit: int = 100,
 ) -> Tuple[List[dict], List[dict]]:
     # Instantiate subreddit
     subreddit = reddit.subreddit(subreddit_name)
@@ -133,7 +137,7 @@ def fetch_subreddit_newest_submissions(
     # Timestamp of fetching
     _fetched_ts = datetime.now(UTC).timestamp()
     _fetched_iso_utc = datetime.fromtimestamp(_fetched_ts, UTC).isoformat()
-    _fetched_date = datetime.fromtimestamp(_fetched_ts, UTC).date().strftime('%Y-%m-%d')
+    _fetched_date = datetime.fromtimestamp(_fetched_ts, UTC).date().strftime("%Y-%m-%d")
 
     # Fetch newest submissions
     top_new = subreddit.new(limit=submission_limit)
@@ -149,47 +153,61 @@ def fetch_subreddit_newest_submissions(
             validated_submission_dict = dict(validated_submission)
 
             # Add fetched timestamp and date
-            validated_submission_dict['_fetched_date'] = _fetched_date
-            validated_submission_dict['_fetched_iso_utc'] = _fetched_iso_utc
+            validated_submission_dict["_fetched_date"] = _fetched_date
+            validated_submission_dict["_fetched_iso_utc"] = _fetched_iso_utc
 
             # Convert edited to None if False as the value is not a timestamp
-            if not validated_submission_dict['edited']:
-                validated_submission_dict['edited'] = None
+            if not validated_submission_dict["edited"]:
+                validated_submission_dict["edited"] = None
 
             submissions.append(validated_submission_dict)
 
         except ValidationError as e:
-            invalid_submission = {"invalid_record": submission.__dict__, "error": e.__str__()}
-            logger.warning(f"Failed to validate submission: {invalid_submission} with exception {e}")
+            invalid_submission = {
+                "invalid_record": submission.__dict__,
+                "error": e.__str__(),
+            }
+            logger.warning(
+                f"Failed to validate submission: {invalid_submission} with exception {e}"
+            )
             invalid_submissions.append(invalid_submission)
-        
+
         except praw.exceptions.RedditAPIException as e:
-            logger.error(f"Request failed while fetching submission with server exception {e}")
+            logger.error(
+                f"Request failed while fetching submission with server exception {e}"
+            )
             raise e
-        
+
         except praw.exceptions.ClientException as e:
-            logger.error(f"Request failed while fetching submission with client exception {e}")
+            logger.error(
+                f"Request failed while fetching submission with client exception {e}"
+            )
             raise e
-    
-    logger.info(f"Successfully fetched {len(submissions)} submissions from r/{subreddit_name}")
+
+    logger.info(
+        f"Successfully fetched {len(submissions)} submissions from r/{subreddit_name}"
+    )
     if invalid_submissions:
-        logger.warning(f"Failed to validate {len(invalid_submissions)} submissions from r/{subreddit_name}")
-    
+        logger.warning(
+            f"Failed to validate {len(invalid_submissions)} submissions from r/{subreddit_name}"
+        )
+
     return submissions, invalid_submissions
+
 
 def fetch_submission_comments(
     reddit: praw.reddit.Reddit,
     submission: Union[praw.models.Submission, str],
     logger: logging.Logger,
-    comment_replace_more_limit: Union[int, None]=None,
+    comment_replace_more_limit: Union[int, None] = None,
 ) -> Tuple[List[dict], List[dict]]:
     if isinstance(submission, str):
         submission = reddit.submission(submission)
-    
+
     # Timestamp of fetching
     _fetched_ts = datetime.now(UTC).timestamp()
     _fetched_iso_utc = datetime.fromtimestamp(_fetched_ts, UTC).isoformat()
-    _fetched_date = datetime.fromtimestamp(_fetched_ts, UTC).date().strftime('%Y-%m-%d')
+    _fetched_date = datetime.fromtimestamp(_fetched_ts, UTC).date().strftime("%Y-%m-%d")
 
     # Retrieve comments recursively
     submission.comments.replace_more(limit=comment_replace_more_limit)
@@ -205,48 +223,59 @@ def fetch_submission_comments(
             validated_comment_dict = dict(validated_comment)
 
             # Add fetched timestamp and date
-            validated_comment_dict['_fetched_date'] = _fetched_date
-            validated_comment_dict['_fetched_iso_utc'] = _fetched_iso_utc
-            
+            validated_comment_dict["_fetched_date"] = _fetched_date
+            validated_comment_dict["_fetched_iso_utc"] = _fetched_iso_utc
+
             # Convert edited to None if False as the value is not a timestamp
-            if not validated_comment_dict['edited']:
-                validated_comment_dict['edited'] = None
-            
+            if not validated_comment_dict["edited"]:
+                validated_comment_dict["edited"] = None
+
             comments.append(validated_comment_dict)
 
         except ValidationError as e:
             invalid_comment = {"invalid_record": comment.__dict__, "error": e.__str__()}
-            logger.warning(f"Failed to validate comment: {invalid_comment} with exception {e}")
+            logger.warning(
+                f"Failed to validate comment: {invalid_comment} with exception {e}"
+            )
             invalid_comments.append(invalid_comment)
-        
+
         except praw.exceptions.RedditAPIException as e:
-            logger.error(f"Request failed while fetching comments with server exception {e}")
+            logger.error(
+                f"Request failed while fetching comments with server exception {e}"
+            )
             raise e
-        
+
         except praw.exceptions.ClientException as e:
-            logger.error(f"Request failed while fetching comments with client exception {e}")
+            logger.error(
+                f"Request failed while fetching comments with client exception {e}"
+            )
             raise e
 
     if comments:
-        logger.info(f"Successfully fetched {len(comments)} comments from submission {submission.id}")
+        logger.info(
+            f"Successfully fetched {len(comments)} comments from submission {submission.id}"
+        )
     else:
         logger.info(f"No comments fetched from submission {submission.id}")
     if invalid_comments:
-        logger.warning(f"Failed to validate {len(invalid_comments)} comments from submission {submission.id}")
+        logger.warning(
+            f"Failed to validate {len(invalid_comments)} comments from submission {submission.id}"
+        )
 
     return comments, invalid_comments
+
 
 def fetch_reddit(
     reddit_client: praw.Reddit,
     subreddit: str,
     logger: logging.Logger,
     submission_limit: int = 100,
-    comment_replace_more_limit: Union[int, None] = None
+    comment_replace_more_limit: Union[int, None] = None,
 ) -> Dict[str, Any]:
     """
     Fetches submissions and their comments for a given subreddit using the PRAW client.
 
-    This function retrieves the newest submissions based on `submission_limit`. 
+    This function retrieves the newest submissions based on `submission_limit`.
     For each valid submission, it then fetches comments. The depth of comment
     fetching is controlled by `comment_replace_more_limit`, which corresponds to
     PRAW's `replace_more(limit=...)` parameter. If `comment_replace_more_limit`
@@ -271,8 +300,10 @@ def fetch_reddit(
             'valid_comments': A list of successfully fetched and validated comment data.
             'invalid_comments': A list of comments that failed PRAW validation.
     """
-    execution_date_utc = datetime.fromtimestamp(datetime.now(UTC).timestamp()).strftime('%Y-%m-%d')
-    sub = subreddit # Already lowercased by handler
+    execution_date_utc = datetime.fromtimestamp(datetime.now(UTC).timestamp()).strftime(
+        "%Y-%m-%d"
+    )
+    sub = subreddit  # Already lowercased by handler
 
     logger.info(f"Fetching newest submissions from r/{sub}")
     valid_submissions, invalid_submissions = fetch_subreddit_newest_submissions(
@@ -281,41 +312,49 @@ def fetch_reddit(
 
     all_valid_comments = []
     all_invalid_comments = []
-    if valid_submissions: # Only fetch comments if there are submissions
-        logger.info(f"Fetching comments for {len(valid_submissions)} retrieved submissions from r/{sub}")
+    if valid_submissions:  # Only fetch comments if there are submissions
+        logger.info(
+            f"Fetching comments for {len(valid_submissions)} retrieved submissions from r/{sub}"
+        )
         for submission_obj in valid_submissions:
             comments, invalid_comments_for_submission = fetch_submission_comments(
-                reddit_client, submission_obj['id'], logger, comment_replace_more_limit=comment_replace_more_limit
+                reddit_client,
+                submission_obj["id"],
+                logger,
+                comment_replace_more_limit=comment_replace_more_limit,
             )
             all_valid_comments.extend(comments)
             all_invalid_comments.extend(invalid_comments_for_submission)
-    
+
     return {
         "execution_date_utc": execution_date_utc,
         "valid_submissions": valid_submissions,
         "invalid_submissions": invalid_submissions,
         "valid_comments": all_valid_comments,
-        "invalid_comments": all_invalid_comments
+        "invalid_comments": all_invalid_comments,
     }
+
 
 def lambda_handler(payload, context):
     logger = logging.getLogger(__name__)
     logger.setLevel(logging.INFO)
     logger.addHandler(logging.StreamHandler())
 
-    logger.info(f"Starting lambda function {context.function_name} version {context.function_version}")
+    logger.info(
+        f"Starting lambda function {context.function_name} version {context.function_version}"
+    )
     logger.info(f"Lambda Request ID: {context.aws_request_id}")
     logger.info(f"Lambda function memory limits in MB: {context.memory_limit_in_mb}")
 
     try:
-        reddit_client_id = payload['reddit_client_id']
-        reddit_client_secret = payload['reddit_client_secret']
-        tasks = payload.get('tasks', [])
+        reddit_client_id = payload["reddit_client_id"]
+        reddit_client_secret = payload["reddit_client_secret"]
+        tasks = payload.get("tasks", [])
 
         if not isinstance(tasks, list):
             logger.error("Payload 'tasks' must be a list.")
             raise TypeError("Payload 'tasks' must be a list.")
-        
+
         if not tasks:
             logger.warning("No tasks found in payload. Exiting.")
             return
@@ -324,24 +363,28 @@ def lambda_handler(payload, context):
         reddit_client = praw.Reddit(
             client_id=reddit_client_id,
             client_secret=reddit_client_secret,
-            user_agent="mad_dashboard_app"
+            user_agent="mad_dashboard_app",
         )
-        
+
         # Initialize S3 client once
-        s3_client = boto3.client('s3')
+        s3_client = boto3.client("s3")
 
         for i, task in enumerate(tasks):
-            subreddit_name = task.get('subreddit')
-            s3_bucket_name = task.get('s3_bucket')
-            submission_lim = task.get('submission_limit', 100)
-            comment_replace_more_lim = task.get('comment_replace_more_limit')
+            subreddit_name = task.get("subreddit")
+            s3_bucket_name = task.get("s3_bucket")
+            submission_lim = task.get("submission_limit", 100)
+            comment_replace_more_lim = task.get("comment_replace_more_limit")
 
-            logger.info(f"Processing task {i+1}/{len(tasks)} for subreddit: {subreddit_name}")
+            logger.info(
+                f"Processing task {i + 1}/{len(tasks)} for subreddit: {subreddit_name}"
+            )
 
             if not subreddit_name or not s3_bucket_name:
-                logger.error(f"Task {i+1} is missing 'subreddit' or 's3_bucket'. Skipping: {task}")
+                logger.error(
+                    f"Task {i + 1} is missing 'subreddit' or 's3_bucket'. Skipping: {task}"
+                )
                 continue
-            
+
             sub_name_lower = subreddit_name.lower()
 
             fetched_data = fetch_reddit(
@@ -349,51 +392,74 @@ def lambda_handler(payload, context):
                 subreddit=sub_name_lower,
                 logger=logger,
                 submission_limit=submission_lim,
-                comment_replace_more_limit=comment_replace_more_lim
+                comment_replace_more_limit=comment_replace_more_lim,
             )
 
             exec_date = fetched_data["execution_date_utc"]
 
             # Store valid submissions
             if fetched_data["valid_submissions"]:
-                submissions_json = "\n".join([json.dumps(record) for record in fetched_data["valid_submissions"]])
-                put_to_s3(data=submissions_json, 
-                          s3_bucket=s3_bucket_name, 
-                          s3_file=f"data/reddit/api/{exec_date}/valid/{sub_name_lower}_submissions.json", 
-                          s3_client=s3_client, 
-                          logger=logger)
+                submissions_json = "\n".join(
+                    [json.dumps(record) for record in fetched_data["valid_submissions"]]
+                )
+                put_to_s3(
+                    data=submissions_json,
+                    s3_bucket=s3_bucket_name,
+                    s3_file=f"data/reddit/api/{exec_date}/valid/{sub_name_lower}_submissions.json",
+                    s3_client=s3_client,
+                    logger=logger,
+                )
             # Store invalid submissions
             if fetched_data["invalid_submissions"]:
-                invalid_submissions_json = "\n".join([json.dumps(record) for record in fetched_data["invalid_submissions"]])
-                put_to_s3(data=invalid_submissions_json, 
-                          s3_bucket=s3_bucket_name, 
-                          s3_file=f"data/reddit/api/{exec_date}/invalid/{sub_name_lower}_submissions.json", 
-                          s3_client=s3_client, 
-                          logger=logger)
+                invalid_submissions_json = "\n".join(
+                    [
+                        json.dumps(record)
+                        for record in fetched_data["invalid_submissions"]
+                    ]
+                )
+                put_to_s3(
+                    data=invalid_submissions_json,
+                    s3_bucket=s3_bucket_name,
+                    s3_file=f"data/reddit/api/{exec_date}/invalid/{sub_name_lower}_submissions.json",
+                    s3_client=s3_client,
+                    logger=logger,
+                )
             # Store valid comments
             if fetched_data["valid_comments"]:
-                comments_json = "\n".join([json.dumps(record) for record in fetched_data["valid_comments"]])
-                put_to_s3(data=comments_json, 
-                          s3_bucket=s3_bucket_name, 
-                          s3_file=f"data/reddit/api/{exec_date}/valid/{sub_name_lower}_comments.json", 
-                          s3_client=s3_client, 
-                          logger=logger)
+                comments_json = "\n".join(
+                    [json.dumps(record) for record in fetched_data["valid_comments"]]
+                )
+                put_to_s3(
+                    data=comments_json,
+                    s3_bucket=s3_bucket_name,
+                    s3_file=f"data/reddit/api/{exec_date}/valid/{sub_name_lower}_comments.json",
+                    s3_client=s3_client,
+                    logger=logger,
+                )
             # Store invalid comments
             if fetched_data["invalid_comments"]:
-                invalid_comments_json = "\n".join([json.dumps(record) for record in fetched_data["invalid_comments"]])
-                put_to_s3(data=invalid_comments_json, 
-                          s3_bucket=s3_bucket_name, 
-                          s3_file=f"data/reddit/api/{exec_date}/invalid/{sub_name_lower}_comments.json", 
-                          s3_client=s3_client, 
-                          logger=logger)
+                invalid_comments_json = "\n".join(
+                    [json.dumps(record) for record in fetched_data["invalid_comments"]]
+                )
+                put_to_s3(
+                    data=invalid_comments_json,
+                    s3_bucket=s3_bucket_name,
+                    s3_file=f"data/reddit/api/{exec_date}/invalid/{sub_name_lower}_comments.json",
+                    s3_client=s3_client,
+                    logger=logger,
+                )
 
             if i < len(tasks) - 1:
                 logger.info(f"Sleeping for 60 seconds before next task...")
                 time.sleep(60)
 
-        logger.info(f"Lambda function {context.function_name} version {context.function_version} completed successfully.")
+        logger.info(
+            f"Lambda function {context.function_name} version {context.function_version} completed successfully."
+        )
     except KeyError as e:
-        logger.error(f"Missing a required top-level key in payload (e.g., reddit_client_id, reddit_client_secret, or tasks): {e}")
+        logger.error(
+            f"Missing a required top-level key in payload (e.g., reddit_client_id, reddit_client_secret, or tasks): {e}"
+        )
         raise e
     except Exception as e:
         logger.error(f"Error processing Reddit tasks: {e}")
