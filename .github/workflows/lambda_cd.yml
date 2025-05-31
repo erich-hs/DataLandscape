@@ -22,11 +22,6 @@ jobs:
       PYTHON_VERSION: '3.13'
 
     steps:
-      # No checkout needed if we only use the downloaded artifact
-      # However, aws-actions/configure-aws-credentials might benefit from it for certain setups.
-      # - name: Checkout code
-      #   uses: actions/checkout@v4
-
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
@@ -50,13 +45,6 @@ jobs:
           uv pip install aws-sam-cli
         shell: bash
 
-      - name: Download packaged Lambda artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: packaged-lambda-${{ github.event.workflow_run.head_sha }} # Use the SHA from the triggering workflow run
-          run-id: ${{ github.event.workflow_run.id }} # Explicitly specify the triggering workflow run ID
-          # path: . # Optional: specify a path to download to, defaults to GITHUB_WORKSPACE
-
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
@@ -66,10 +54,10 @@ jobs:
 
       - name: Deploy Lambdas using SAM
         run: |
-          echo "Deploying Lambdas from packaged template..."
+          echo "Deploying Lambdas from S3 packaged template..."
           
           sam deploy \
-            --template-file packaged-template.yaml \
+            --template-file s3://${{ secrets.DEV__LAMBDA_ARTIFACTS_S3_BUCKET }}/sam-templates/${{ github.event.workflow_run.head_sha }}/packaged-template.yaml \
             --stack-name ${{ secrets.DEV__AWS_RESOURCE_BASE }}-lambda-stack \
             --s3-bucket ${{ secrets.DEV__LAMBDA_ARTIFACTS_S3_BUCKET }} \
             --s3-prefix sam-deployments/${{ github.run_id }}/${{ github.run_attempt }} \

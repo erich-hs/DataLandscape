@@ -61,8 +61,7 @@ jobs:
             --s3-bucket ${{ secrets.DEV__LAMBDA_ARTIFACTS_S3_BUCKET }} \
             --s3-prefix sam-packages/${{ github.sha }}
 
-      - name: Upload packaged Lambda artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: packaged-lambda-${{ github.sha }}
-          path: packaged-template.yaml 
+      - name: Upload packaged template to S3
+        run: |
+          aws s3 cp packaged-template.yaml s3://${{ secrets.DEV__LAMBDA_ARTIFACTS_S3_BUCKET }}/sam-templates/${{ github.sha }}/packaged-template.yaml
+        shell: bash
