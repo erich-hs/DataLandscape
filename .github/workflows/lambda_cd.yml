@@ -1,0 +1,75 @@
+name: Lambda CD
+
+on:
+  workflow_run:
+    workflows:
+      - Lambda CI
+    types:
+      - completed
+    branches: # Optional: only trigger if the CI workflow ran on these branches
+      - data_landscape_migration
+
+jobs:
+  # This job waits for the CI job to complete successfully for the same commit (if on a push event)
+  # For workflow_dispatch, this dependency might not be automatically resolved in the same way.
+  # Consider if you need a more explicit way to link workflow_dispatch runs to CI artifacts.
+  deploy:
+    runs-on: ubuntu-latest
+    permissions: # Grant permission to read artifacts from the CI workflow
+      actions: read
+    env:
+      PYTHON_VERSION: '3.13'
+
+    steps:
+      # No checkout needed if we only use the downloaded artifact
+      # However, aws-actions/configure-aws-credentials might benefit from it for certain setups.
+      # - name: Checkout code
+      #   uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install uv
+        run: |
+          curl -LsSf https://astral.sh/uv/install.sh | sh
+          echo "$HOME/.cargo/bin" >> $GITHUB_PATH
+        shell: bash
+
+      - name: Create and activate virtual environment
+        run: |
+          uv venv .venv
+          echo "VIRTUAL_ENV=.venv" >> $GITHUB_ENV
+          echo "$PWD/.venv/bin" >> $GITHUB_PATH
+        shell: bash
+
+      - name: Install AWS SAM CLI
+        run: |
+          uv pip install aws-sam-cli
+        shell: bash
+
+      - name: Download packaged Lambda artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: packaged-lambda-${{ github.event.workflow_run.head_sha }} # Use the SHA from the triggering workflow run
+          # path: . # Optional: specify a path to download to, defaults to GITHUB_WORKSPACE
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.DEV__LAMBDA_UPDATER__AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.DEV__LAMBDA_UPDATER__AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.DEV__AWS_REGION }}
+
+      - name: Deploy Lambdas using SAM
+        run: |
+          echo "Deploying Lambdas from packaged template..."
+          
+          sam deploy \
+            --template-file packaged-template.yaml \
+            --stack-name ${{ secrets.DEV__AWS_RESOURCE_BASE }}-lambda-stack \
+            --s3-bucket ${{ secrets.DEV__LAMBDA_ARTIFACTS_S3_BUCKET }} \
+            --s3-prefix sam-deployments/${{ github.run_id }}/${{ github.run_attempt }} \
+            --no-fail-on-empty-changeset \
+            --parameter-overrides IngestRedditFunctionName=${{ secrets.DEV__AWS_RESOURCE_BASE }}-ingest-reddit-01
