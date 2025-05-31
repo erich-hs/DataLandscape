@@ -15,6 +15,7 @@ jobs:
   # Consider if you need a more explicit way to link workflow_dispatch runs to CI artifacts.
   deploy:
     runs-on: ubuntu-latest
+    if: github.event.workflow_run.conclusion == 'success' # Only run if the triggering CI workflow succeeded
     permissions: # Grant permission to read artifacts from the CI workflow
       actions: read
     env:
@@ -53,6 +54,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: packaged-lambda-${{ github.event.workflow_run.head_sha }} # Use the SHA from the triggering workflow run
+          run-id: ${{ github.event.workflow_run.id }} # Explicitly specify the triggering workflow run ID
           # path: . # Optional: specify a path to download to, defaults to GITHUB_WORKSPACE
 
       - name: Configure AWS Credentials
