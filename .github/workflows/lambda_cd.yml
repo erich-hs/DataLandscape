@@ -6,18 +6,15 @@ on:
       - Lambda CI
     types:
       - completed
-    branches: # Optional: only trigger if the CI workflow ran on these branches
+    branches:
       - data_landscape_migration
 
 jobs:
-  # This job waits for the CI job to complete successfully for the same commit (if on a push event)
-  # For workflow_dispatch, this dependency might not be automatically resolved in the same way.
-  # Consider if you need a more explicit way to link workflow_dispatch runs to CI artifacts.
   deploy:
     runs-on: ubuntu-latest
-    if: github.event.workflow_run.conclusion == 'success' # Only run if the triggering CI workflow succeeded
-    permissions: # Grant permission to read artifacts from the CI workflow
-      actions: read
+    if: github.event.workflow_run.conclusion == 'success'
+    permissions:
+      contents: read
     env:
       PYTHON_VERSION: '3.13'
 
@@ -27,23 +24,10 @@ jobs:
         with:
           python-version: ${{ env.PYTHON_VERSION }}
 
-      - name: Install uv
+      - name: Install yq
         run: |
-          curl -LsSf https://astral.sh/uv/install.sh | sh
-          echo "$HOME/.cargo/bin" >> $GITHUB_PATH
-        shell: bash
-
-      - name: Create and activate virtual environment
-        run: |
-          uv venv .venv
-          echo "VIRTUAL_ENV=.venv" >> $GITHUB_ENV
-          echo "$PWD/.venv/bin" >> $GITHUB_PATH
-        shell: bash
-
-      - name: Install AWS SAM CLI
-        run: |
-          uv pip install aws-sam-cli
-        shell: bash
+          sudo wget -qO /usr/local/bin/yq https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64
+          sudo chmod +x /usr/local/bin/yq
 
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v4
@@ -52,21 +36,50 @@ jobs:
           aws-secret-access-key: ${{ secrets.DEV__LAMBDA_UPDATER__AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ secrets.DEV__AWS_REGION }}
 
-      - name: Download packaged template from S3
+      - name: Download lambda template from S3
+        env:
+          S3_BUCKET: ${{ secrets.DEV__LAMBDA_ARTIFACTS_S3_BUCKET }}
         run: |
-          aws s3 cp "s3://${{ secrets.DEV__LAMBDA_ARTIFACTS_S3_BUCKET }}/sam-templates/${{ github.event.workflow_run.head_sha }}/packaged-template.yaml" packaged-template.yaml
-          echo "Packaged template downloaded from S3."
-        shell: bash
+          aws s3 cp "s3://${S3_BUCKET}/${{ github.run_id }}/template.yaml" template.yaml
+          echo "Lambda template downloaded from S3."
 
-      - name: Deploy Lambdas using SAM
+      - name: Deploy Lambdas from S3
+        env:
+          RESOURCE_PREFIX: ${{ secrets.DEV__AWS_RESOURCE_BASE }}
+          S3_BUCKET: ${{ secrets.DEV__S3_BUCKET }}
+          TRIGGERING_RUN_ID: ${{ github.event.workflow_run.id }}
         run: |
-          echo "Deploying Lambdas from S3 packaged template..."
-          
-          sam deploy \
-            --template-file packaged-template.yaml \
-            --stack-name ${{ secrets.DEV__AWS_RESOURCE_BASE }}-lambda-stack \
-            --s3-bucket ${{ secrets.DEV__LAMBDA_ARTIFACTS_S3_BUCKET }} \
-            --s3-prefix sam-deployments/${{ github.run_id }}/${{ github.run_attempt }} \
-            --no-fail-on-empty-changeset \
-            --capabilities CAPABILITY_IAM CAPABILITY_AUTO_EXPAND \
-            --parameter-overrides IngestRedditFunctionName=${{ secrets.DEV__AWS_RESOURCE_BASE }}-ingest-reddit-01
+          echo "Deploying artifacts from CI run ID: ${TRIGGERING_RUN_ID}"
+
+          functions=$(yq '(.Resources | to_entries | .[] | select(.value.Type == "AWS::Serverless::Function")).key' template.yaml)
+
+          for function_logical_id in $functions; do
+            function_name=$(yq ".Resources.${function_logical_id}.Properties.FunctionName" template.yaml)
+            function_handler=$(yq ".Resources.${function_logical_id}.Properties.Handler" template.yaml)
+            function_runtime=$(yq ".Resources.${function_logical_id}.Properties.Runtime" template.yaml)
+            function_memory_size=$(yq ".Resources.${function_logical_id}.Properties.MemorySize" template.yaml)
+            function_timeout=$(yq ".Resources.${function_logical_id}.Properties.Timeout" template.yaml)
+            zip_file_name="${RESOURCE_PREFIX}-${function_name}.zip"
+            s3_key="${TRIGGERING_RUN_ID}/${zip_file_name}"
+
+            echo "---"
+            echo "Updating function $function_name code..."
+
+            aws lambda update-function-code \
+              --function-name "$function_name" \
+              --s3-bucket "$S3_BUCKET" \
+              --s3-key "$s3_key"
+
+            echo "Updating function $function_name configuration..."
+            aws lambda update-function-configuration \
+              --function-name "$function_name" \
+              --handler "$function_handler" \
+              --runtime "$function_runtime" \
+              --memory-size "$function_memory_size" \
+              --timeout "$function_timeout"
+
+            echo "Function $function_name updated."
+
+          done
+          echo "---"
+          echo "All function updates are complete."
