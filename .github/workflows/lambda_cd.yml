@@ -52,12 +52,18 @@ jobs:
           aws-secret-access-key: ${{ secrets.DEV__LAMBDA_UPDATER__AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ secrets.DEV__AWS_REGION }}
 
+      - name: Download packaged template from S3
+        run: |
+          aws s3 cp "s3://${{ secrets.DEV__LAMBDA_ARTIFACTS_S3_BUCKET }}/sam-templates/${{ github.event.workflow_run.head_sha }}/packaged-template.yaml" packaged-template.yaml
+          echo "Packaged template downloaded from S3."
+        shell: bash
+
       - name: Deploy Lambdas using SAM
         run: |
           echo "Deploying Lambdas from S3 packaged template..."
           
           sam deploy \
-            --template-file s3://${{ secrets.DEV__LAMBDA_ARTIFACTS_S3_BUCKET }}/sam-templates/${{ github.event.workflow_run.head_sha }}/packaged-template.yaml \
+            --template-file packaged-template.yaml \
             --stack-name ${{ secrets.DEV__AWS_RESOURCE_BASE }}-lambda-stack \
             --s3-bucket ${{ secrets.DEV__LAMBDA_ARTIFACTS_S3_BUCKET }} \
             --s3-prefix sam-deployments/${{ github.run_id }}/${{ github.run_attempt }} \
