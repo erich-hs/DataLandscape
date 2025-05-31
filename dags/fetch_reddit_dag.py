@@ -1,6 +1,9 @@
 from datetime import datetime
 from airflow.decorators import dag
-from airflow.providers.amazon.aws.operators.lambda_function import LambdaInvokeFunctionOperator
+from airflow.providers.amazon.aws.operators.lambda_function import (
+    LambdaInvokeFunctionOperator,
+)
+
 
 @dag(
     schedule=None,
@@ -15,9 +18,10 @@ def fetch_reddit_dag():
         function_name="dl-dev-ingest-reddit-01",
         payload="""{"key": "value"}""",
         log_type="Tail",
-        aws_conn_id="aws_invoke_lambda"
+        aws_conn_id="aws_invoke_lambda",
     )
 
     invoke_lambda
+
 
 fetch_reddit_dag()

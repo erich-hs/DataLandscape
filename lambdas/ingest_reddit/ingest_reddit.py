@@ -117,7 +117,7 @@ def put_to_s3(data, s3_bucket, s3_file, s3_client, logger):
         s3_client.put_object(Bucket=s3_bucket, Key=s3_file, Body=data)
         logger.info(f"Write to S3 successful: {s3_bucket}/{s3_file}")
         return f"s3://{s3_bucket}/{s3_file}"
-    
+
     except NoCredentialsError as e:
         logger.error("Credentials not available")
         raise e
