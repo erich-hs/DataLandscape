@@ -1,0 +1,67 @@
+name: Lambda CI
+
+on: [push, pull_request]
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+    env:
+      # This S3 bucket is used by 'sam package' to store packaged code artifacts (zip files).
+      # Ensure this bucket exists and the role assumed by the workflow has write access to it.
+      PYTHON_VERSION: '3.13'
+      # RESOURCE_BASE_PREFIX will be used if your template.yaml or sam package command needs it
+      # For now, sam package mainly uses SAM_S3_BUCKET for output.
+      # RESOURCE_BASE_PREFIX: ${{ secrets.RESOURCE_BASE_PREFIX }} 
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install uv
+        run: |
+          curl -LsSf https://astral.sh/uv/install.sh | sh
+          echo "$HOME/.cargo/bin" >> $GITHUB_PATH
+        shell: bash
+
+      - name: Install dependencies and AWS SAM CLI
+        run: |
+          uv pip install -r lambdas/ingest_reddit/requirements.txt
+          uv pip install aws-sam-cli ruff # Ensure ruff is available
+
+      - name: Check formatting
+        run: ruff format --check lambdas/ingest_reddit
+
+      - name: Lint code
+        run: ruff check lambdas/ingest_reddit
+
+      - name: Run Lambda tests
+        run: |
+          echo "Running Lambda tests..."
+          uv run pytest lambdas/ingest_reddit
+          exit 0
+      
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.DEV__LAMBDA_UPDATER__AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.DEV__LAMBDA_UPDATER__AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.DEV__AWS_REGION }}
+
+      - name: Package Lambda function
+        run: |
+          sam package \
+            --template-file lambdas/template.yaml \
+            --output-template-file packaged-template.yaml \
+            --s3-bucket ${{ secrets.DEV__LAMBDA_ARTIFACTS_S3_BUCKET }} \
+            --s3-prefix sam-packages/${{ github.sha }}
+
+      - name: Upload packaged Lambda artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: packaged-lambda-${{ github.sha }}
+          path: packaged-template.yaml 
