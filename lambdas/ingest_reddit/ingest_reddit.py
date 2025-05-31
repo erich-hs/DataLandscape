@@ -131,6 +131,19 @@ def fetch_subreddit_newest_submissions(
     logger: logging.Logger,
     submission_limit: int = 100,
 ) -> Tuple[List[dict], List[dict]]:
+    """Fetches the newest submissions from a given subreddit.
+
+    Args:
+        reddit (praw.reddit.Reddit): A PRAW Reddit instance.
+        subreddit_name (str): The name of the subreddit to fetch data from (case-insensitive).
+        logger (logging.Logger): A logger instance for logging information and errors.
+        submission_limit (int, optional): The maximum number of newest submissions to fetch. Defaults to 100.
+
+    Returns:
+        Tuple[List[dict], List[dict]]: A tuple containing:
+            - A list of successfully fetched and validated submission data.
+            - A list of submissions that failed PRAW validation.
+    """
     # Instantiate subreddit
     subreddit = reddit.subreddit(subreddit_name)
 
@@ -201,6 +214,26 @@ def fetch_submission_comments(
     logger: logging.Logger,
     comment_replace_more_limit: Union[int, None] = None,
 ) -> Tuple[List[dict], List[dict]]:
+    """Fetches comments for a given submission.
+
+    Args:
+        reddit (praw.reddit.Reddit): A PRAW Reddit instance.
+        submission (Union[praw.models.Submission, str]): A PRAW Submission object or a string representing a submission ID.
+        logger (logging.Logger): A logger instance for logging information and errors.
+        comment_replace_more_limit (Union[int, None], optional): Controls the depth of comment fetching.
+            Corresponds to PRAW's `replace_more(limit=...)`.
+            `None` attempts to get all comments. An integer N makes at most N
+            "load more" calls. `0` fetches only initially visible comments.
+            Defaults to None.
+
+    Raises:
+        e: If the request fails with a RedditAPIException or ClientException.
+
+    Returns:
+        Tuple[List[dict], List[dict]]: A tuple containing:
+            - A list of successfully fetched and validated comment data.
+            - A list of comments that failed PRAW validation.
+    """
     if isinstance(submission, str):
         submission = reddit.submission(submission)
 
