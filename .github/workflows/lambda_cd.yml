@@ -68,4 +68,5 @@ jobs:
             --s3-bucket ${{ secrets.DEV__LAMBDA_ARTIFACTS_S3_BUCKET }} \
             --s3-prefix sam-deployments/${{ github.run_id }}/${{ github.run_attempt }} \
             --no-fail-on-empty-changeset \
+            --capabilities CAPABILITY_IAM CAPABILITY_AUTO_EXPAND \
             --parameter-overrides IngestRedditFunctionName=${{ secrets.DEV__AWS_RESOURCE_BASE }}-ingest-reddit-01
