@@ -6,12 +6,7 @@ jobs:
   ci:
     runs-on: ubuntu-latest
     env:
-      # This S3 bucket is used by 'sam package' to store packaged code artifacts (zip files).
-      # Ensure this bucket exists and the role assumed by the workflow has write access to it.
       PYTHON_VERSION: '3.13'
-      # RESOURCE_BASE_PREFIX will be used if your template.yaml or sam package command needs it
-      # For now, sam package mainly uses SAM_S3_BUCKET for output.
-      # RESOURCE_BASE_PREFIX: ${{ secrets.RESOURCE_BASE_PREFIX }} 
 
     steps:
       - name: Checkout code
@@ -38,22 +33,17 @@ jobs:
       - name: Install dependencies and AWS SAM CLI
         run: |
           uv pip install -r lambdas/ingest_reddit/requirements.txt
-          uv pip install aws-sam-cli ruff # Ensure ruff is available
-        shell: bash
-
-      - name: Check formatting
-        run: ruff format --check lambdas/ingest_reddit
+          uv pip install -r lambdas/requirements-dev.txt
         shell: bash
 
       - name: Lint code
-        run: ruff check lambdas/ingest_reddit
+        run: make lint-lambdas
         shell: bash
 
       - name: Run Lambda tests
         run: |
           echo "Running Lambda tests..."
-          uv run pytest lambdas/ingest_reddit
-          exit 0
+          make test-lambdas
         shell: bash
       
       - name: Configure AWS Credentials
