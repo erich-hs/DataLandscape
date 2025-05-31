@@ -2,7 +2,8 @@ name: Lambda CD
 
 on:
   workflow_run:
-    workflows: ["Lambda CI"] # Name of the CI workflow file
+    workflows:
+      - "Lambda CI"
     types:
       - completed
     branches: # Optional: only trigger if the CI workflow ran on these branches
