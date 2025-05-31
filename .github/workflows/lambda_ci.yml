@@ -28,22 +28,33 @@ jobs:
           echo "$HOME/.cargo/bin" >> $GITHUB_PATH
         shell: bash
 
+      - name: Create and activate virtual environment
+        run: |
+          uv venv .venv
+          echo "VIRTUAL_ENV=.venv" >> $GITHUB_ENV
+          echo "$PWD/.venv/bin" >> $GITHUB_PATH
+        shell: bash
+
       - name: Install dependencies and AWS SAM CLI
         run: |
           uv pip install -r lambdas/ingest_reddit/requirements.txt
           uv pip install aws-sam-cli ruff # Ensure ruff is available
+        shell: bash
 
       - name: Check formatting
         run: ruff format --check lambdas/ingest_reddit
+        shell: bash
 
       - name: Lint code
         run: ruff check lambdas/ingest_reddit
+        shell: bash
 
       - name: Run Lambda tests
         run: |
           echo "Running Lambda tests..."
           uv run pytest lambdas/ingest_reddit
           exit 0
+        shell: bash
       
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v4
