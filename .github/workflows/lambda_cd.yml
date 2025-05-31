@@ -1,8 +1,11 @@
 name: Lambda CD
 
 on:
-  push:
-    branches:
+  workflow_run:
+    workflows: ["Lambda CI"] # Name of the CI workflow file
+    types:
+      - completed
+    branches: # Optional: only trigger if the CI workflow ran on these branches
       - data_landscape_migration
 
 jobs:
@@ -11,6 +14,9 @@ jobs:
   # Consider if you need a more explicit way to link workflow_dispatch runs to CI artifacts.
   deploy:
     runs-on: ubuntu-latest
+    if: github.event.workflow_run.conclusion == 'success' # Only run if the triggering CI workflow succeeded
+    permissions: # Grant permission to read artifacts from the CI workflow
+      actions: read
     env:
       PYTHON_VERSION: '3.13'
 
@@ -46,7 +52,7 @@ jobs:
       - name: Download packaged Lambda artifact
         uses: actions/download-artifact@v4
         with:
-          name: packaged-lambda-${{ github.sha }} # Must match the upload name in CI
+          name: packaged-lambda-${{ github.event.workflow_run.head_sha }} # Use the SHA from the triggering workflow run
           # path: . # Optional: specify a path to download to, defaults to GITHUB_WORKSPACE
 
       - name: Configure AWS Credentials
