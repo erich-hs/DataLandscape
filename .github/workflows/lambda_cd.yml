@@ -14,7 +14,6 @@ jobs:
   # Consider if you need a more explicit way to link workflow_dispatch runs to CI artifacts.
   deploy:
     runs-on: ubuntu-latest
-    if: github.event.workflow_run.conclusion == 'success' # Only run if the triggering CI workflow succeeded
     permissions: # Grant permission to read artifacts from the CI workflow
       actions: read
     env:
