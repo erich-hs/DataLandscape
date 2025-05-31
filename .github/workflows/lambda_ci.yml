@@ -30,7 +30,7 @@ jobs:
           echo "$PWD/.venv/bin" >> $GITHUB_PATH
         shell: bash
 
-      - name: Install dependencies and AWS SAM CLI
+      - name: Install dependencies
         run: |
           uv pip install -r lambdas/ingest_reddit/requirements.txt
           uv pip install -r lambdas/requirements-dev.txt
@@ -46,6 +46,12 @@ jobs:
           make test-lambdas
         shell: bash
       
+      - name: Install yq and zip
+        run: |
+          sudo apt-get update && sudo apt-get install -y zip
+          sudo wget -qO /usr/local/bin/yq https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64
+          sudo chmod +x /usr/local/bin/yq
+
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
@@ -53,15 +59,63 @@ jobs:
           aws-secret-access-key: ${{ secrets.DEV__LAMBDA_UPDATER__AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ secrets.DEV__AWS_REGION }}
 
-      - name: Package Lambda function
+      - name: Build, Package and Upload Lambdas
+        env:
+          RESOURCE_PREFIX: ${{ secrets.DEV__AWS_RESOURCE_BASE }}
+          S3_BUCKET: ${{ secrets.DEV__LAMBDA_ARTIFACTS_S3_BUCKET }}
+          RUN_ID: ${{ github.run_id }}
         run: |
-          sam package \
-            --template-file lambdas/template.yaml \
-            --output-template-file packaged-template.yaml \
-            --s3-bucket ${{ secrets.DEV__LAMBDA_ARTIFACTS_S3_BUCKET }} \
-            --s3-prefix sam-packages/${{ github.sha }}
+          # Query the YAML file for all resources of type AWS::Serverless::Function
+          functions=$(yq '(.Resources | to_entries | .[] | select(.value.Type == "AWS::Serverless::Function")).key' template.yaml)
 
-      - name: Upload packaged template to S3
+          for function_logical_id in $functions; do
+            # Extract the FunctionName and CodeUri for the current function
+            function_name=$(yq ".Resources.${function_logical_id}.Properties.FunctionName" template.yaml)
+            code_uri=$(yq ".Resources.${function_logical_id}.Properties.CodeUri" template.yaml | sed 's:/*$::') # Remove trailing slash
+
+            echo "---"
+            echo "Processing function: $function_name"
+
+            # Construct the zip file name with the secret prefix
+            zip_file_name="${RESOURCE_PREFIX}-${function_name}.zip"
+
+            # Create a temporary packaging directory
+            package_dir="package_${function_name}"
+            mkdir -p "$package_dir"
+
+            # Install dependencies into the packaging directory
+            if [ -f "${code_uri}/requirements.txt" ]; then
+              echo "  Installing dependencies from requirements.txt..."
+              pip install -r "${code_uri}/requirements.txt" -t "$package_dir"
+            else
+              echo "  No requirements.txt found for this function."
+            fi
+
+            # Copy function code using rsync, excluding unwanted files/folders
+            echo "  Copying function source code..."
+            rsync -av --prune-empty-dirs \
+              --exclude 'tests/' \
+              --exclude 'requirements.txt' \
+              --exclude '__pycache__/' \
+              --exclude '*.pyc' \
+              --exclude '.pytest_cache/' \
+              "${code_uri}/" "$package_dir/"
+
+            # Create the zip file from the packaging directory
+            echo "  Creating zip file..."
+            (cd "$package_dir" && zip -r "../${zip_file_name}" .)
+
+            # Upload the zip file to S3
+            echo "  Uploading ${function_name} to S3..."
+            aws s3 cp "${zip_file_name}" "s3://${S3_BUCKET}/${RUN_ID}/${zip_file_name}"
+
+            # Clean up temporary files
+            rm -rf "$package_dir" "${zip_file_name}"
+          done
+          echo "---"
+          echo "All functions have been packaged and uploaded."
+
+      - name: Upload Lambda template to S3
         run: |
-          aws s3 cp packaged-template.yaml s3://${{ secrets.DEV__LAMBDA_ARTIFACTS_S3_BUCKET }}/sam-templates/${{ github.sha }}/packaged-template.yaml
-        shell: bash
+          aws s3 cp template.yaml "s3://${S3_BUCKET}/${RUN_ID}/template.yaml"
+          echo "Lambda template uploaded to S3."
