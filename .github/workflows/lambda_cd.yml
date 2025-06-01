@@ -47,7 +47,7 @@ jobs:
       - name: Deploy Lambdas from S3
         env:
           RESOURCE_PREFIX: ${{ secrets.DEV__AWS_RESOURCE_BASE }}
-          S3_BUCKET: ${{ secrets.DEV__S3_BUCKET }}
+          S3_BUCKET: ${{ secrets.DEV__LAMBDA_ARTIFACTS_S3_BUCKET }}
           COMMIT_SHA: ${{ github.event.workflow_run.head_sha }}
         run: |
           echo "Deploying artifacts from commit SHA: ${COMMIT_SHA}"
