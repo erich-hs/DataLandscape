@@ -39,17 +39,18 @@ jobs:
       - name: Download lambda template from S3
         env:
           S3_BUCKET: ${{ secrets.DEV__LAMBDA_ARTIFACTS_S3_BUCKET }}
+          COMMIT_SHA: ${{ github.event.workflow_run.head_sha }}
         run: |
-          aws s3 cp "s3://${S3_BUCKET}/${{ github.run_id }}/template.yaml" template.yaml
+          aws s3 cp "s3://${S3_BUCKET}/${COMMIT_SHA}/template.yaml" template.yaml
           echo "Lambda template downloaded from S3."
 
       - name: Deploy Lambdas from S3
         env:
           RESOURCE_PREFIX: ${{ secrets.DEV__AWS_RESOURCE_BASE }}
           S3_BUCKET: ${{ secrets.DEV__S3_BUCKET }}
-          TRIGGERING_RUN_ID: ${{ github.event.workflow_run.id }}
+          COMMIT_SHA: ${{ github.event.workflow_run.head_sha }}
         run: |
-          echo "Deploying artifacts from CI run ID: ${TRIGGERING_RUN_ID}"
+          echo "Deploying artifacts from commit SHA: ${COMMIT_SHA}"
 
           functions=$(yq '(.Resources | to_entries | .[] | select(.value.Type == "AWS::Serverless::Function")).key' template.yaml)
 
@@ -60,7 +61,7 @@ jobs:
             function_memory_size=$(yq ".Resources.${function_logical_id}.Properties.MemorySize" template.yaml)
             function_timeout=$(yq ".Resources.${function_logical_id}.Properties.Timeout" template.yaml)
             zip_file_name="${RESOURCE_PREFIX}-${function_name}.zip"
-            s3_key="${TRIGGERING_RUN_ID}/${zip_file_name}"
+            s3_key="${COMMIT_SHA}/${zip_file_name}"
 
             echo "---"
             echo "Updating function $function_name code..."
