@@ -7,6 +7,9 @@ mad-dashboard-app-*.json
 .vscode/
 .backup/
 
+# Lambda test files
+.*.json
+
 # Logs
 .DS_Store
 

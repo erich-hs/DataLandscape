@@ -4,13 +4,13 @@
   "tasks": [
     {
       "subreddit": "python",
-      "s3_bucket": "dl-dev-s3bucket-landingzone01",
+      "s3_bucket": "{resource_prefix}-s3bucket-landingzone01",
       "submission_limit": 5,
       "comment_replace_more_limit": null
     },
     {
       "subreddit": "datascience",
-      "s3_bucket": "dl-dev-s3bucket-landingzone01",
+      "s3_bucket": "{resource_prefix}-s3bucket-landingzone01",
       "submission_limit": 10,
       "comment_replace_more_limit": 1
     }
