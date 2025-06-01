@@ -71,7 +71,11 @@ jobs:
               --s3-bucket "$S3_BUCKET" \
               --s3-key "$s3_key"
 
-            echo "Updating function $function_name configuration..."
+            echo "Waiting for function ${function_name} code update to complete..."
+            aws lambda wait function-updated \
+              --function-name "${RESOURCE_PREFIX}-${function_name}"
+
+            echo "Updating function ${function_name} configuration..."
             aws lambda update-function-configuration \
               --function-name "${RESOURCE_PREFIX}-${function_name}" \
               --handler "$function_handler" \
@@ -79,7 +83,11 @@ jobs:
               --memory-size "$function_memory_size" \
               --timeout "$function_timeout"
 
-            echo "Function $function_name updated."
+            echo "Waiting for function ${function_name} configuration update to complete..."
+            aws lambda wait function-updated \
+              --function-name "${RESOURCE_PREFIX}-${function_name}"
+
+            echo "Function ${function_name} updated."
 
           done
           echo "---"
