@@ -63,7 +63,7 @@ jobs:
         env:
           RESOURCE_PREFIX: ${{ secrets.DEV__AWS_RESOURCE_BASE }}
           S3_BUCKET: ${{ secrets.DEV__LAMBDA_ARTIFACTS_S3_BUCKET }}
-          RUN_ID: ${{ github.run_id }}
+          COMMIT_SHA: ${{ github.sha }}
         working-directory: ./lambdas
         run: |
           # Query the YAML file for all resources of type AWS::Serverless::Function
@@ -108,7 +108,7 @@ jobs:
 
             # Upload the zip file to S3
             echo "  Uploading ${function_name} to S3..."
-            aws s3 cp "${zip_file_name}" "s3://${S3_BUCKET}/${RUN_ID}/${zip_file_name}"
+            aws s3 cp "${zip_file_name}" "s3://${S3_BUCKET}/${COMMIT_SHA}/${zip_file_name}"
 
             # Clean up temporary files
             rm -rf "$package_dir" "${zip_file_name}"
@@ -118,6 +118,9 @@ jobs:
 
       - name: Upload Lambda template to S3
         working-directory: ./lambdas
+        env:
+          S3_BUCKET: ${{ secrets.DEV__LAMBDA_ARTIFACTS_S3_BUCKET }}
+          COMMIT_SHA: ${{ github.sha }}
         run: |
-          aws s3 cp template.yaml "s3://${S3_BUCKET}/${RUN_ID}/template.yaml"
+          aws s3 cp template.yaml "s3://${S3_BUCKET}/${COMMIT_SHA}/template.yaml"
           echo "Lambda template uploaded to S3."
