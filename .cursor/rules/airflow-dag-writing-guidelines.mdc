@@ -1,0 +1,323 @@
+---
+description: 
+globs: **/dags/*.py
+alwaysApply: false
+---
+
+# Apache Airflow DAGs and Tasks guidelines
+
+## DAGs
+- Always set the catchup parameter to False
+- Always set max_active_runs to 1
+- Always define a dag using the @dag decorator
+**Good Example:**
+```python
+from airflow.decorators import dag
+
+@dag()
+def my_dag:
+
+my_dag()
+```
+***Bad Example:**
+```python
+from airflow import DAG
+
+with DAG():
+    pass
+```
+- Always specify a static start_date using the pendulum datetime object that corresponding to January 1st of the current year
+- Don't specifiy a static start_date if, and only if, the schedule parameter is set to None
+- Always set the schedule parameter to ```'@daily'``` by default
+- Always set the description parameter with a consice one sentence description of what the DAG does
+- Always define default_args with the retries parameter set to 2
+- Always define a dagrun_time to duration(minutes=30) using the pendulum library
+- Use chain or chain_linear instead of right and left bitshit operators for defining task dependencies
+- Don't mix task decorators and traditional operators
+**Good Example:**
+```python
+@task
+def a():
+    print('hello')
+
+@task
+def b():
+    print('world')
+
+chain(a(), b())
+```
+**Bad Example:**
+```python
+@task
+def a():
+    print('hello')
+
+b = PythonOperator(
+    task_id='task_b',
+    python_callable=lambda : print('world')
+)
+
+chain(a(), b)
+```
+- Group tasks using @task_group that seem to follow the same functional logic
+**Good Example:**
+```python
+@dag()
+def my_dag():
+    @task_group(group_id='processing_tasks')
+    def tg():
+        t1 = EmptyOperator(task_id='process_a')
+        t2 = EmptyOperator(task_id='process_b')
+        t3 = EmptyOperator(task_id='process_c')
+
+        chain(t1, t2, t3)
+    tg()
+my_dag()
+```
+**Bad Example:**
+```python
+@dag()
+def my_dag():
+
+    t1 = EmptyOperator(task_id='process_a')
+    t2 = EmptyOperator(task_id='process_b')
+    t3 = EmptyOperator(task_id='process_c')
+
+    chain(t1, t2, t3)
+my_dag()
+```
+- Use dynamic task mapping instead of creating a for loop for generating tasks
+**Good Example:**
+```python
+@task(map_index_template="{{ my_custom_map_index }}")
+def add(x: int, y: int):
+
+    # get the current context and define the custom map index variable
+    from airflow.operators.python import get_current_context
+
+    context = get_current_context()
+    context["my_custom_map_index"] = "Input x=" + str(x)
+
+    return x + y
+
+added_values = add.partial(y=10).expand(x=[1, 2, 3])
+```
+**Bad Example:**
+```python
+for x in [1, 2, 3]:
+
+    task = PythonOperator(
+        task_id=f"task_{x}",
+        python_callable=lambda x: x + 10
+    )
+```
+- Avoid top-level code in your DAG files. Top-level code refers to any code that is run at the time the DAG is parsed, as opposed to the time the task is run.
+**Good Example:**
+```python
+from airflow.decorators import dag, task
+from airflow.providers.postgres.operators.postgres import PostgresOperator
+from airflow.providers.postgres.hooks.postgres import PostgresHook
+from pendulum import datetime
+
+
+@dag(
+    start_date=datetime(2023, 1, 1), max_active_runs=3, schedule="@daily", catchup=False
+)
+def good_practices_dag_1():
+    @task
+    def get_list_of_results():
+        # good practice: wrap database connections into a task
+        hook = PostgresHook("database_conn")
+        results = hook.get_records("SELECT * FROM grocery_list;")
+        return results
+
+    @task
+    def create_sql_query(result):
+        grocery = result[0]
+        amount = result[1]
+        sql = f"INSERT INTO purchase_order VALUES ('{grocery}', {amount});"
+        return sql
+
+    sql_queries = create_sql_query.expand(result=get_list_of_results())
+
+    insert_into_purchase_order_postgres = PostgresOperator.partial(
+        task_id="insert_into_purchase_order_postgres",
+        postgres_conn_id="postgres_default",
+    ).expand(sql=sql_queries)
+
+
+good_practices_dag_1()
+```
+**Bad Example:**
+```python
+"""WARNING: This DAG is used as an example for _bad_ Airflow practices. Do not
+use this DAG."""
+
+from airflow.decorators import dag
+from airflow.providers.postgres.operators.postgres import PostgresOperator
+from airflow.providers.postgres.hooks.postgres import PostgresHook
+from pendulum import datetime
+
+# Bad practice: top-level code in a DAG file
+hook = PostgresHook("database_conn")
+results = hook.get_records("SELECT * FROM grocery_list;")
+
+sql_queries = []
+
+for result in results:
+    grocery = result[0]
+    amount = result[1]
+    sql_query = f"INSERT INTO purchase_order VALUES ('{grocery}', {amount});"
+
+    sql_queries.append(sql_query)
+
+
+@dag(
+    start_date=datetime(2023, 1, 1), max_active_runs=3, schedule="@daily", catchup=False
+)
+def bad_practices_dag_1():
+    insert_into_purchase_order_postgres = PostgresOperator.partial(
+        task_id="insert_into_purchase_order_postgres",
+        postgres_conn_id="postgres_default",
+    ).expand(sql=sql_queries)
+
+
+bad_practices_dag_1()
+```
+
+## Tasks
+
+- Never put SQL requests or Bash scripts directly as parameter value of a task. Create a SQL file or bash script in the include folder as described in @project_structure.md and then use the path for the task.
+- Treat tasks in Airflow equivalent to transactions in a database. A task must be idempotent. For a set imput, running the task once has the same efffect as running the task multiple times.
+- Do not use INSERT in tasks, replace with UPSERT to avoid duplicate rows.
+- Use IF EXISTS in SQL queries to be able to rerun tasks.
+- Read and write data using data_interval_start. Never use a dynamic date like datetime.now() or latest date.
+- Use type hints when defining tasks
+- Don't use the DummyOperator, use the EmpytOperator for placeholder tasks.
+- When sharing data using XCOMs, use the ti parameter or task parameters to pass data.
+**Good Example:**
+```python
+@dag(schedule="@daily", default_args=default_args, catchup=False)
+def xcom_taskflow_dag():
+    @task
+    def get_a_cat_fact():
+        """
+        Gets a cat fact from the CatFacts API
+        """
+        res = requests.get(url)
+        return {"cat_fact": json.loads(res.text)["fact"]}
+
+    @task
+    def print_the_cat_fact(cat_fact: str):
+        """
+        Prints the cat fact
+        """
+        print("Cat fact for today:", cat_fact)
+        # run some further cat analysis here
+
+    # Invoke functions to create tasks and define dependencies
+    print_the_cat_fact(get_a_cat_fact())
+```
+- Use decorators such as @task, @task.bash, @task.branch_python, @run_if, @skip_if, @task.sensor, @setup and @teardown
+- Use setup and teardown tasks to ensure that the necessary resources to run an Airflow task are set up before a task is executed and that those resources are torn down after the task has completed, regardless of any task failures. For example, when setting up a Spark cluster, to manage compute resources to train an ML model, etc.
+**Good Example:**
+```python
+@setup
+def my_setup_task():
+    print("Setting up resources!")
+    my_cluster_id = "cluster-2319"
+    return my_cluster_id
+
+@task
+def worker_task():
+    return "Doing some work!"
+
+@teardown
+def my_teardown_task(my_cluster_id):
+    return f"Tearing down {my_cluster_id}!"
+
+my_setup_task_obj = my_setup_task()
+chain(my_setup_task_obj, worker_task(), my_teardown_task(my_setup_task_obj))
+```
+- A task must be responsible for one operation:
+**Good Example:**
+```python
+@task
+def a():
+    compute_x()
+
+@task
+def b():
+    compute_y()
+```
+**Bad Example:**
+```python
+@task
+def a():
+    compute_x()
+    compute_y()
+```
+- Use template fields, variables and macros when possible
+**Good Example:**
+```python
+bash_use_variable_good = BashOperator(
+    task_id="bash_use_variable_good",
+    bash_command="echo variable foo=${foo_env}",
+    env={"foo_env": "{{ var.value.get('foo') }}"},
+)
+
+@task
+def my_task():
+    var = Variable.get("foo")
+    print(var)
+```
+**Bad Example:**
+```python
+from airflow.models import Variable
+
+foo_var = Variable.get("foo")
+bash_use_variable_bad_1 = BashOperator(
+    task_id="bash_use_variable_bad_1", bash_command="echo variable foo=${foo_env}", env={"foo_env": foo_var}
+)
+
+bash_use_variable_bad_2 = BashOperator(
+    task_id="bash_use_variable_bad_2",
+    bash_command=f"echo variable foo=${Variable.get('foo')}",
+)
+
+bash_use_variable_bad_3 = BashOperator(
+    task_id="bash_use_variable_bad_3",
+    bash_command="echo variable foo=${foo_env}",
+    env={"foo_env": Variable.get("foo")},
+)
+```
+- Every task dependency adds additional processing overhead for scheduling and execution. The DAG that has simple linear structure A -> B -> C will experience less delays in task scheduling than DAG that has a deeply nested tree structure with exponentially growing number of depending tasks for example.
+- Each time a task runs a python function, that python function must be unit tested as described in [airflow-test-task-guidelines.mdc](mdc:.cursor/rules/airflow-test-task-guidelines.mdc)
+- When using dynamic task mapping, always set a meaningful custom index to display in the UI with map_index_template
+**Good Example:**
+```python
+@task(
+    # optionally, you can set a custom index to display in the UI (Airflow 2.9+)
+    map_index_template="{{ my_custom_map_index }}"
+)
+def add(x: int, y: int):
+
+    # get the current context and define the custom map index variable
+    from airflow.operators.python import get_current_context
+
+    context = get_current_context()
+    context["my_custom_map_index"] = "Input x=" + str(x)
+
+    return x + y
+
+added_values = add.partial(y=10).expand(x=[1, 2, 3])
+```
+**Bad Example:**
+```python
+@task()
+def add(x: int, y: int):
+    return x + y
+
+added_values = add.partial(y=10).expand(x=[1, 2, 3])
+```
+

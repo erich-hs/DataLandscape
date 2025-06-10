@@ -1,0 +1,11 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+
+# Guidelines for writing tests for testing Airflow tasks
+
+- Use pytest
+- Every dag in the dags folder should have a dedicated folder with the unit tests in it
+- Every dag should comply with the tests in @checker.py

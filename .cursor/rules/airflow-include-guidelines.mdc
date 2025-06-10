@@ -1,0 +1,17 @@
+---
+description: 
+globs: **/include/**
+alwaysApply: false
+---
+
+# Guidelines for files in the include folder
+
+- A file with a SQL request should be named in uppercase with the sql extension. The first part of the name must be what the SQL request does such as CREATE, INSERT, UPDATE, DELETE.
+**Good Example:**
+```
+CREATE_MY_REQUEST.sql
+```
+**Bad Example:**
+```
+my_request.txt
+```
