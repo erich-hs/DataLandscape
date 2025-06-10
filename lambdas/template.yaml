@@ -11,6 +11,6 @@ Resources:
       Description: Ingests data from Reddit API for specified subreddits and stores it in S3.
       CodeUri: ingest_reddit/
       Handler: ingest_reddit.lambda_handler
-      Runtime: python3.13
+      Runtime: python3.12
       MemorySize: 128
       Timeout: 300
