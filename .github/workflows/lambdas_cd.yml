@@ -1,9 +1,9 @@
-name: Lambda CD
+name: Lambdas CD
 
 on:
   workflow_run:
     workflows:
-      - Lambda CI
+      - Lambdas CI
     types:
       - completed
     branches:
