@@ -4,3 +4,15 @@ repos:
     hooks:
     -   id: ruff-format
     -   id: ruff
+
+-   repo: https://github.com/astral-sh/uv-pre-commit
+    rev: 0.7.9
+    hooks:
+      - id: uv-export
+        name: main dependencies
+        args: [--no-dev, --no-hashes, -o, requirements.txt]
+        files: pyproject.toml
+      - id: uv-export
+        name: dev dependencies
+        args: [--dev, --no-hashes, -o, requirements-dev.txt]
+        files: pyproject.toml
