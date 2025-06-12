@@ -14,5 +14,5 @@ repos:
         files: pyproject.toml
       - id: uv-export
         name: dev dependencies
-        args: [--dev, --no-hashes, -o, requirements-dev.txt]
+        args: [--only-group, dev, --no-hashes, -o, requirements-dev.txt]
         files: pyproject.toml
