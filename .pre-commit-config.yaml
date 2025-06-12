@@ -10,7 +10,7 @@ repos:
     hooks:
       - id: uv-export
         name: main dependencies
-        args: [--no-dev, --no-hashes, -o, requirements.txt]
+        args: [--no-dev, --no-hashes, -o, requirements.txt, --no-emit-package, apache-airflow]
         files: pyproject.toml
       - id: uv-export
         name: dev dependencies
