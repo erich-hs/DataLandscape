@@ -6,8 +6,8 @@ on:
       - data_landscape_migration
     paths:
       - 'lambdas/**'
-      - '.github/workflows/lambda_ci.yml'
-      - '.github/workflows/lambda_cd.yml'
+      - '.github/workflows/lambdas_ci.yml'
+      - '.github/workflows/lambdas_cd.yml'
 
 jobs:
   ci:
