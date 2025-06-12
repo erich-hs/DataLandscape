@@ -1,4 +1,4 @@
-name: Lambda CI
+name: Lambdas CI
 
 on:
   push:
