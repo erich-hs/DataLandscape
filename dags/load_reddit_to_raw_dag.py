@@ -32,9 +32,7 @@ def load_reddit_to_raw_dag():
     }
 
     @task
-    def load_reddit_to_raw_tables(ds=None, **kwargs):
-        # macros = kwargs.get("macros")
-
+    def load_reddit_to_raw_tables(ds=None):
         glue_hook = GlueJobHook(aws_conn_id="aws_default", region_name=AWS_REGION)
         glue_client = glue_hook.get_conn()
         s3_hook = S3Hook(aws_conn_id="aws_default", region_name=AWS_REGION)
