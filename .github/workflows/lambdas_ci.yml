@@ -39,8 +39,9 @@ jobs:
 
       - name: Install dependencies
         run: |
-          uv pip install -r lambdas/ingest_reddit/requirements.txt
-          uv pip install -r lambdas/requirements-dev.txt
+          # Dev requirements are needed for the linting step.
+          # The test step will install its own dependencies in isolated environments.
+          uv pip install -r requirements-dev.txt
         shell: bash
 
       - name: Lint code
@@ -94,7 +95,7 @@ jobs:
             # Install dependencies into the packaging directory
             if [ -f "${code_uri}/requirements.txt" ]; then
               echo "  Installing dependencies from requirements.txt..."
-              pip install -r "${code_uri}/requirements.txt" -t "$package_dir"
+              uv pip install --system -r "${code_uri}/requirements.txt" -t "$package_dir"
             else
               echo "  No requirements.txt found for this function."
             fi

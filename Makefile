@@ -58,7 +58,21 @@ format-lambdas:
 	$(MAKE) format TARGET_DIR=$(LAMBDAS_DIR)
 
 test-lambdas:
-	$(MAKE) test TARGET_DIR=$(LAMBDAS_DIR)
+	@for lambda_dir in $$(find $(LAMBDAS_DIR) -mindepth 1 -maxdepth 1 -type d); do \
+		if [ -d "$$lambda_dir/tests" ]; then \
+			echo "--- Testing $$lambda_dir ---"; \
+			req_file="$$lambda_dir/requirements.txt"; \
+			if [ -f "$$req_file" ]; then \
+				uv run --isolated --with-requirements $$req_file --with-requirements requirements-dev.txt pytest $$lambda_dir; \
+			else \
+				echo "  No requirements.txt found for $$lambda_dir. Using only dev requirements."; \
+				uv run --isolated --with-requirements requirements-dev.txt pytest $$lambda_dir; \
+			fi; \
+		else \
+			echo "--- Skipping $$lambda_dir (no tests directory) ---"; \
+		fi \
+	done
+	@echo "--- All lambda tests concluded ---"
 
 # --- All Targets ---
 
