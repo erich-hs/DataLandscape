@@ -95,7 +95,7 @@ jobs:
             # Install dependencies into the packaging directory
             if [ -f "${code_uri}/requirements.txt" ]; then
               echo "  Installing dependencies from requirements.txt..."
-              uv pip install --system -r "${code_uri}/requirements.txt" -t "$package_dir"
+              uv pip install -r "${code_uri}/requirements.txt" --target "$package_dir"
             else
               echo "  No requirements.txt found for this function."
             fi
