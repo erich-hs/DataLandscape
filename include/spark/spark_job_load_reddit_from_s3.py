@@ -14,6 +14,7 @@ from pyspark.sql.types import (  # type: ignore
     DoubleType,
     ArrayType,
     MapType,
+    DateType,
 )
 from pyspark.sql.functions import current_timestamp  # type: ignore
 
@@ -125,7 +126,7 @@ submissions_schema = StructType(
         StructField("url", StringType(), True),
         StructField("user_reports", ArrayType(StringType()), True),
         StructField("wls", IntegerType(), True),
-        StructField("_fetched_date", StringType(), True),
+        StructField("_fetched_date", DateType(), True),
         StructField("_fetched_iso_utc", StringType(), True),
     ]
 )
@@ -167,7 +168,7 @@ comments_schema = StructType(
         StructField("total_awards_received", IntegerType(), True),
         StructField("treatment_tags", ArrayType(StringType()), True),
         StructField("ups", IntegerType(), True),
-        StructField("_fetched_date", StringType(), True),
+        StructField("_fetched_date", DateType(), True),
         StructField("_fetched_iso_utc", StringType(), True),
     ]
 )
