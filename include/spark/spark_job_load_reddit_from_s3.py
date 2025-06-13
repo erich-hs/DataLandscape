@@ -15,6 +15,7 @@ from pyspark.sql.types import (  # type: ignore
     ArrayType,
     MapType,
 )
+from pyspark.sql.functions import current_timestamp  # type: ignore
 
 # %% Set up logging
 logging.basicConfig(
@@ -181,19 +182,21 @@ logging.info(
 spark.sql(f"""
 CREATE TABLE IF NOT EXISTS {target_database}.{target_submissions_table} (
     {", ".join([f"{field.name} {field.dataType.simpleString()}" for field in submissions_schema.fields])},
-    _load_date DATE
+    _created_date DATE,
+    _loaded_ts_utc TIMESTAMP
 )
 USING ICEBERG
-PARTITIONED BY (MONTH(_load_date))
+PARTITIONED BY (MONTH(_created_date))
 """)
 
 spark.sql(f"""
 CREATE TABLE IF NOT EXISTS {target_database}.{target_comments_table} (
     {", ".join([f"{field.name} {field.dataType.simpleString()}" for field in comments_schema.fields])},
-    _load_date DATE
+    _created_date DATE,
+    _loaded_ts_utc TIMESTAMP
 )
 USING ICEBERG
-PARTITIONED BY (MONTH(_load_date))
+PARTITIONED BY (MONTH(_created_date))
 """)
 logging.info(f"Iceberg table {target_submissions_table} created")
 
@@ -222,15 +225,22 @@ logging.info(
 )
 
 
-# Build _load_date column
-source_submissions_df = source_submissions_df.withColumn(
-    "_load_date", source_submissions_df.created_utc.cast("timestamp").cast("date")
+# Build _created_date & _loaded_ts_utc columns
+source_submissions_df = source_submissions_df.withColumns(
+    {
+        "_created_date": source_submissions_df.created_utc.cast("timestamp").cast(
+            "date"
+        ),
+        "_loaded_ts_utc": current_timestamp(),
+    }
 )
 
-source_comments_df = source_comments_df.withColumn(
-    "_load_date", source_comments_df.created_utc.cast("timestamp").cast("date")
+source_comments_df = source_comments_df.withColumns(
+    {
+        "_created_date": source_comments_df.created_utc.cast("timestamp").cast("date"),
+        "_loaded_ts_utc": current_timestamp(),
+    }
 )
-
 
 # Write to iceberg tables
 source_submissions_df.createOrReplaceTempView("submissions")
