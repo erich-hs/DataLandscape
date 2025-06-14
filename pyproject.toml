@@ -7,6 +7,7 @@ requires-python = ">=3.12"
 dependencies = [
     "apache-airflow-providers-amazon>=9.8.0",
     "apache-airflow-providers-trino>=6.2.0",
+    "astronomer-cosmos>=1.10.1",
     "pendulum>=3.1.0",
 ]
 
