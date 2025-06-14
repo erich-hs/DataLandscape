@@ -5,6 +5,7 @@ description = "DataLandscape.org Lakehouse Project"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
+    "apache-airflow-core==3.0.1",
     "apache-airflow-providers-amazon>=9.8.0",
     "apache-airflow-providers-trino>=6.2.0",
     "astronomer-cosmos>=1.10.1",
