@@ -19,3 +19,20 @@ To test all lambdas, run the following command from the root directory:
 ```bash
 make test-lambdas
 ```
+
+## dbt Local Development
+### Build Airflow environment
+```bash
+astro dev start
+```
+
+### Bash into Airflow scheduler container
+```bash
+astro dev bash -s
+source dbt_venv/bin/activate
+```
+
+### Run dbt commands
+```bash
+dbt debug
+```
