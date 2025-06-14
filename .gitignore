@@ -12,6 +12,9 @@ wheels/
 # Lambda test files
 lambdas/**/.*.json
 
+# dbt logs
+dags/dbt/**/logs/
+
 # VSCode
 .vscode/
 
@@ -42,3 +45,6 @@ cover/
 .mypy_cache/
 .dmypy.json
 dmypy.json
+
+# Ruff
+.ruff_cache/
