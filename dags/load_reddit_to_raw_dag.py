@@ -1,11 +1,24 @@
-from datetime import datetime
-from airflow.decorators import dag, task  # type: ignore
+from pendulum import datetime, duration
+from airflow.sdk import Asset
+from airflow.decorators import dag, task
+
+reddit_raw_files_s3 = Asset(
+    "reddit_raw_files_s3",
+    uri="s3://dl-dev-s3bucket-landingzone01/data/reddit/api",
+    group="reddit",
+)
+reddit_comments_raw = Asset("raw.reddit.comments", group="reddit")
+reddit_submissions_raw = Asset("raw.reddit.submissions", group="reddit")
 
 
 @dag(
-    schedule=None,
+    schedule=[reddit_raw_files_s3],
     start_date=datetime(2025, 6, 6),
-    catchup=False,
+    catchup=True,
+    max_active_runs=1,
+    dagrun_timeout=duration(minutes=30),
+    default_args={"retries": 0},
+    description="Loads Reddit data from S3 to raw Iceberg tables.",
     tags=["reddit", "load", "raw"],
 )
 def load_reddit_to_raw_dag():
@@ -31,14 +44,25 @@ def load_reddit_to_raw_dag():
         "--extra-jars": "s3://dl-dev-s3bucket-aux01/jars/s3-tables-catalog-for-iceberg-runtime-0.1.5.jar",
     }
 
-    @task
-    def load_reddit_to_raw_tables(ds=None):
+    @task(outlets=[reddit_comments_raw, reddit_submissions_raw])
+    def load_reddit_to_raw_tables(dag_run=None, triggering_asset_events=None):
         glue_hook = GlueJobHook(aws_conn_id="aws_default", region_name=AWS_REGION)
         glue_client = glue_hook.get_conn()
         s3_hook = S3Hook(aws_conn_id="aws_default", region_name=AWS_REGION)
         s3_client = s3_hook.get_conn()
         logs_hook = AwsLogsHook(aws_conn_id="aws_default", region_name=AWS_REGION)
         logs_client = logs_hook.get_conn()
+
+        ds = None
+        if triggering_asset_events:
+            # A single asset event is expected for this dag
+            event = next(iter(triggering_asset_events.values()))[0]
+            ds = event.timestamp.strftime("%Y-%m-%d")
+        elif dag_run and dag_run.data_interval_start:
+            ds = dag_run.data_interval_start.strftime("%Y-%m-%d")
+
+        if not ds:
+            raise ValueError("Could not determine data partition date (ds).")
 
         submit_glue_job(
             job_name="load_reddit_to_raw_tables",
