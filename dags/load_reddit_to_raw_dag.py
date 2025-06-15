@@ -40,8 +40,8 @@ def load_reddit_to_raw_dag():
         "spark.sql.catalog.s3tablesbucket.warehouse": "arn:aws:s3tables:us-west-2:533267070818:bucket/dl-dev-s3tablebucket-raw01"
     }
     ADDITIONAL_DEFAULT_JOB_ARGUMENTS = {
-        "--spark-event-logs-path": "s3://dl-dev-s3bucket-aux01/logs/spark/",
-        "--extra-jars": "s3://dl-dev-s3bucket-aux01/jars/s3-tables-catalog-for-iceberg-runtime-0.1.5.jar",
+        "--spark-event-logs-path": f"s3://{ARTIFACTS_S3_BUCKET}/logs/spark/",
+        "--extra-jars": f"s3://{ARTIFACTS_S3_BUCKET}/jars/s3-tables-catalog-for-iceberg-runtime-0.1.5.jar",
     }
 
     @task(outlets=[reddit_comments_raw, reddit_submissions_raw])
