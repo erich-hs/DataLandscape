@@ -180,6 +180,7 @@ spark.sql(f"CREATE NAMESPACE IF NOT EXISTS {target_database}")
 logging.info(
     f"Creating Iceberg tables if they don't exist: {target_submissions_table} and {target_comments_table}"
 )
+
 spark.sql(f"""
 CREATE TABLE IF NOT EXISTS {target_database}.{target_submissions_table} (
     {", ".join([f"{field.name} {field.dataType.simpleString()}" for field in submissions_schema.fields])},
@@ -189,7 +190,6 @@ CREATE TABLE IF NOT EXISTS {target_database}.{target_submissions_table} (
 USING ICEBERG
 PARTITIONED BY (MONTH(_created_date))
 """)
-
 spark.sql(f"""
 CREATE TABLE IF NOT EXISTS {target_database}.{target_comments_table} (
     {", ".join([f"{field.name} {field.dataType.simpleString()}" for field in comments_schema.fields])},
@@ -199,10 +199,12 @@ CREATE TABLE IF NOT EXISTS {target_database}.{target_comments_table} (
 USING ICEBERG
 PARTITIONED BY (MONTH(_created_date))
 """)
+
 logging.info(f"Iceberg table {target_submissions_table} created")
 
 # List comments and submission files
 logging.info(f"Listing all files at {source_s3_bucket}/{source_dir}")
+
 json_files = list_all_files(source_s3_bucket, source_dir)
 submission_files = [
     f"s3://{source_s3_bucket}/{f}"
@@ -212,13 +214,13 @@ submission_files = [
 comments_files = [
     f"s3://{source_s3_bucket}/{f}" for f in json_files if f.endswith("_comments.json")
 ]
+
 logging.info(
     f"Found {len(submission_files)} submission files and {len(comments_files)} comment files"
 )
 
 # Load files to dataframes
 source_submissions_df = spark.read.schema(submissions_schema).json(submission_files)
-
 source_comments_df = spark.read.schema(comments_schema).json(comments_files)
 
 logging.info(
@@ -235,7 +237,6 @@ source_submissions_df = source_submissions_df.withColumns(
         "_loaded_ts_utc": current_timestamp(),
     }
 )
-
 source_comments_df = source_comments_df.withColumns(
     {
         "_created_date": source_comments_df.created_utc.cast("timestamp").cast("date"),
@@ -250,10 +251,11 @@ source_comments_df.createOrReplaceTempView("comments")
 logging.info(
     f"Writing to {target_database}.{target_submissions_table} and {target_database}.{target_comments_table}"
 )
+
 spark.sql(
-    f"""MERGE INTO {target_database}.{target_submissions_table} t
-    USING submissions s
-    ON (s.id = t.id)
+    f"""MERGE INTO {target_database}.{target_submissions_table} AS target
+    USING submissions AS source
+    ON (source.id = target.id)
     WHEN MATCHED
         THEN UPDATE SET *
     WHEN NOT MATCHED
@@ -261,9 +263,9 @@ spark.sql(
     """
 )
 spark.sql(
-    f"""MERGE INTO {target_database}.{target_comments_table} t
-    USING comments s
-    ON (s.id = t.id)
+    f"""MERGE INTO {target_database}.{target_comments_table} AS target
+    USING comments AS source
+    ON (source.id = target.id)
     WHEN MATCHED
         THEN UPDATE SET *
     WHEN NOT MATCHED
