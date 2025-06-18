@@ -2,8 +2,6 @@
 #    uv export --no-dev --no-hashes -o requirements.txt --no-emit-package apache-airflow
 a2wsgi==1.10.8
     # via apache-airflow-core
-aenum==3.1.16
-    # via astronomer-cosmos
 aiohappyeyeballs==2.6.1
     # via aiohttp
 aiohttp==3.12.11
@@ -34,6 +32,7 @@ apache-airflow-providers-common-compat==1.7.0
     # via
     #   apache-airflow-core
     #   apache-airflow-providers-amazon
+    #   apache-airflow-providers-openlineage
     #   apache-airflow-providers-smtp
 apache-airflow-providers-common-io==1.6.0
     # via apache-airflow-core
@@ -41,9 +40,12 @@ apache-airflow-providers-common-sql==1.27.1
     # via
     #   apache-airflow-core
     #   apache-airflow-providers-amazon
+    #   apache-airflow-providers-openlineage
     #   apache-airflow-providers-trino
 apache-airflow-providers-http==5.3.0
     # via apache-airflow-providers-amazon
+apache-airflow-providers-openlineage==2.3.0
+    # via datalandscape
 apache-airflow-providers-smtp==2.1.0
     # via apache-airflow-core
 apache-airflow-providers-standard==1.2.0
@@ -63,15 +65,15 @@ asgiref==3.8.1
     #   apache-airflow-providers-http
 asn1crypto==1.5.1
     # via scramp
-astronomer-cosmos==1.10.1
-    # via datalandscape
 attrs==25.3.0
     # via
     #   aiohttp
     #   apache-airflow-core
+    #   apache-airflow-providers-openlineage
     #   apache-airflow-task-sdk
-    #   astronomer-cosmos
     #   jsonschema
+    #   openlineage-integration-common
+    #   openlineage-python
     #   referencing
     #   svcs
 beautifulsoup4==4.13.4
@@ -127,12 +129,8 @@ cryptography==45.0.4
     # via apache-airflow-core
 deprecated==1.2.18
     # via apache-airflow-core
-deprecation==2.1.0
-    # via astronomer-cosmos
 dill==0.4.0
     # via apache-airflow-core
-distlib==0.3.9
-    # via virtualenv
 dnspython==2.7.0
     # via email-validator
 email-validator==2.2.0
@@ -143,8 +141,6 @@ fastapi==0.115.12
     #   cadwyn
 fastapi-cli==0.0.7
     # via fastapi
-filelock==3.18.0
-    # via virtualenv
 flask==3.1.1
     # via apache-airflow-core
 frozenlist==1.7.0
@@ -203,7 +199,6 @@ jinja2==3.1.6
     # via
     #   apache-airflow-core
     #   apache-airflow-task-sdk
-    #   astronomer-cosmos
     #   cadwyn
     #   fastapi
     #   flask
@@ -257,14 +252,20 @@ methodtools==0.4.7
     #   apache-airflow-task-sdk
 more-itertools==10.7.0
     # via apache-airflow-providers-common-sql
-msgpack==1.1.0
-    # via astronomer-cosmos
 msgspec==0.19.0
     # via apache-airflow-task-sdk
 multidict==6.4.4
     # via
     #   aiohttp
     #   yarl
+openlineage-integration-common==1.33.0
+    # via apache-airflow-providers-openlineage
+openlineage-python==1.33.0
+    # via
+    #   apache-airflow-providers-openlineage
+    #   openlineage-integration-common
+openlineage-sql==1.33.0
+    # via openlineage-integration-common
 opentelemetry-api==1.34.0
     # via
     #   apache-airflow-core
@@ -296,9 +297,8 @@ opentelemetry-semantic-conventions==0.55b0
 packaging==25.0
     # via
     #   apache-airflow-core
-    #   astronomer-cosmos
-    #   deprecation
     #   gunicorn
+    #   openlineage-python
     #   redshift-connector
     #   sagemaker-studio
 pathspec==0.12.1
@@ -308,8 +308,6 @@ pendulum==3.1.0
     #   apache-airflow-core
     #   apache-airflow-task-sdk
     #   datalandscape
-platformdirs==4.3.8
-    # via virtualenv
 pluggy==1.6.0
     # via apache-airflow-core
 ply==3.11
@@ -334,7 +332,6 @@ pycparser==2.22
 pydantic==2.11.5
     # via
     #   apache-airflow-core
-    #   astronomer-cosmos
     #   cadwyn
     #   fastapi
     #   retryhttp
@@ -354,6 +351,7 @@ python-dateutil==2.9.0.post0
     #   apache-airflow-task-sdk
     #   botocore
     #   croniter
+    #   openlineage-python
     #   pendulum
     #   pyathena
     #   sagemaker-studio
@@ -374,6 +372,7 @@ pytz==2025.2
 pyyaml==6.0.2
     # via
     #   libcst
+    #   openlineage-python
     #   uvicorn
 pyyaml-ft==7.0.1 ; python_full_version >= '3.13'
     # via libcst
@@ -387,6 +386,7 @@ requests==2.32.4
     # via
     #   apache-airflow-core
     #   apache-airflow-providers-http
+    #   openlineage-python
     #   opentelemetry-exporter-otlp-proto-http
     #   redshift-connector
     #   requests-toolbelt
@@ -518,8 +518,6 @@ uvicorn==0.34.3
     #   fastapi-cli
 uvloop==0.21.0 ; platform_python_implementation != 'PyPy' and sys_platform != 'cygwin' and sys_platform != 'win32'
     # via uvicorn
-virtualenv==20.31.2
-    # via astronomer-cosmos
 watchfiles==1.0.5
     # via uvicorn
 watchtower==3.4.0
